@@ -1,8 +1,9 @@
 name:                graphql
 version:             0.1
-synopsis:            GraphQL Types
+synopsis:            GraphQL Haskell implementation
 description:
-  Data types for the GraphQL language.
+  For now this package provides the data types for the GraphQL language.
+  Further releases will cover more aspects of the GraphQL specification.
 homepage:            https://github.com/jdnavarro/graphql-haskell
 bug-reports:         https://github.com/jdnavarro/graphql-haskell/issues
 license:             BSD3
@@ -10,7 +11,7 @@ license-file:        LICENSE
 author:              Danny Navarro
 maintainer:          j@dannynavarro.net
 copyright:           Copyright (C) 2015 J. Daniel Navarro
-category:            Web,Parsing
+category:            Web
 build-type:          Simple
 extra-source-files:  README.md CHANGELOG.md stack.yaml
 cabal-version:       >=1.10
