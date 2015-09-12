@@ -1,6 +1,6 @@
 name:                graphql
 version:             0.1
-synopsis:            GraphQL Haskell implementation
+synopsis:            Haskell GraphQL implementation
 description:
   For now this package provides the data types for the GraphQL language.
   Further releases will cover more aspects of the GraphQL specification.
@@ -17,7 +17,7 @@ extra-source-files:  README.md CHANGELOG.md stack.yaml
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Data.GraphQL
+  exposed-modules:     Data.GraphQL.AST
   build-depends:       base >= 4.7 && < 5,
                        text >=0.11.3.1
   default-language:    Haskell2010

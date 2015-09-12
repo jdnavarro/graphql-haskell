@@ -1,4 +1,4 @@
-module Data.GraphQL where
+module Data.GraphQL.AST where
 
 import Data.Text (Text)
 
