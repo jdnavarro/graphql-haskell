@@ -16,9 +16,9 @@ data Definition = DefinitionOperation OperationDefinition
                   deriving (Eq,Show)
 
 data OperationDefinition =
-    Query        (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
-  | Mutation     (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
-  | Subscription (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
+    Query        Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
+  | Mutation     Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
+  | Subscription Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
     deriving (Eq,Show)
 
 data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
