@@ -1,3 +1,10 @@
+## AST
 - Data type accessors
 - Deal with Location
 - Deal with Strictness/unboxing
+
+## Parser
+- Guard `type_` and `value` match when used together
+- Tests!
+- Simplify unnecessary `newtypes` with type synonyms
+- Handle errors
