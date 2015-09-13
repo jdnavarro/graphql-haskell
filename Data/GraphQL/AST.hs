@@ -16,12 +16,13 @@ data Definition = DefinitionOperation OperationDefinition
                   deriving (Eq,Show)
 
 data OperationDefinition =
-    Query        Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
-  | Mutation     Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
-  | Subscription Name (Maybe [VariableDefinition]) (Maybe [Directive]) SelectionSet
+    Query        Name [VariableDefinition] [Directive] SelectionSet
+  | Mutation     Name [VariableDefinition] [Directive] SelectionSet
+  -- Not official yet
+  -- -- | Subscription Name [VariableDefinition] [Directive] SelectionSet
     deriving (Eq,Show)
 
-data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
+data VariableDefinition = VariableDefinition Variable Type DefaultValue
                           deriving (Eq,Show)
 
 newtype Variable = Variable Name deriving (Eq,Show)
@@ -33,9 +34,9 @@ data Selection = SelectionField Field
                | SelectionInlineFragment InlineFragment
                  deriving (Eq,Show)
 
-data Field = Field (Maybe Alias) Name (Maybe [Argument])
-                                      (Maybe [Directive])
-                                      (Maybe SelectionSet)
+data Field = Field Alias Name [Argument]
+                              [Directive]
+                              SelectionSet
              deriving (Eq,Show)
 
 type Alias = Name
@@ -44,15 +45,15 @@ data Argument = Argument Name Value deriving (Eq,Show)
 
 -- * Fragments
 
-data FragmentSpread = FragmentSpread Name (Maybe [Directive])
+data FragmentSpread = FragmentSpread Name [Directive]
                       deriving (Eq,Show)
 
 data InlineFragment =
-    InlineFragment TypeCondition (Maybe [Directive]) SelectionSet
+    InlineFragment TypeCondition [Directive] SelectionSet
     deriving (Eq,Show)
 
 data FragmentDefinition =
-    FragmentDefinition Name TypeCondition (Maybe [Directive]) SelectionSet
+    FragmentDefinition Name TypeCondition [Directive] SelectionSet
     deriving (Eq,Show)
 
 type TypeCondition = NamedType
@@ -60,10 +61,10 @@ type TypeCondition = NamedType
 -- * Values
 
 data Value = ValueVariable Variable
-           | ValueInt Int
-           | ValueFloat Float
-           | ValueString Text
+           | ValueInt Int -- TODO: Should this be `Integer`?
+           | ValueFloat Double -- TODO: Should this be `Scientific`?
            | ValueBoolean Bool
+           | ValueString Text
            | ValueEnum Name
            | ValueList ListValue
            | ValueObject ObjectValue
@@ -79,7 +80,7 @@ type DefaultValue = Value
 
 -- * Directives
 
-data Directive = Directive Name (Maybe [Argument]) deriving (Eq,Show)
+data Directive = Directive Name [Argument] deriving (Eq,Show)
 
 -- * Type Reference
 
@@ -107,15 +108,17 @@ data TypeDefinition = TypeDefinitionObject        ObjectTypeDefinition
                     | TypeDefinitionTypeExtension TypeExtensionDefinition
                       deriving (Eq,Show)
 
-data ObjectTypeDefinition = ObjectTypeDefinition Name (Maybe Interfaces) [FieldDefinition]
+data ObjectTypeDefinition = ObjectTypeDefinition Name Interfaces [FieldDefinition]
                             deriving (Eq,Show)
 
 type Interfaces = [NamedType]
 
-data FieldDefinition = FieldDefinition Name [InputValueDefinition]
+data FieldDefinition = FieldDefinition Name ArgumentsDefinition Type
                        deriving (Eq,Show)
 
-data InputValueDefinition = InputValueDefinition Name Type (Maybe DefaultValue)
+type ArgumentsDefinition = [InputValueDefinition]
+
+data InputValueDefinition = InputValueDefinition Name Type DefaultValue
                             deriving (Eq,Show)
 
 data InterfaceTypeDefinition = InterfaceTypeDefinition Name [FieldDefinition]
