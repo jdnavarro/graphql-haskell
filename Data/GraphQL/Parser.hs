@@ -5,18 +5,20 @@ import Prelude hiding (takeWhile)
 import Control.Applicative (Alternative, (<|>), empty, many)
 import Data.Char
 
-import Data.Attoparsec.Text.Lazy
+import Data.Attoparsec.Text
   ( Parser
   , (<?>)
   , anyChar
   , decimal
   , double
+  , endOfLine
   , isEndOfLine
   , many1
   , manyTill
   , satisfy
   , sepBy
   , sepBy1
+  , skipMany
   , skipSpace
   , skipWhile
   , signed
@@ -289,10 +291,16 @@ space' :: Parser Char
 space' = satisfy isSpace'
 
 s :: Parser ()
-s = skipWhile isSpace'
+s = comments <|> skipWhile isSpace'
 
 s1 :: Parser ()
-s1 = space' *> s
+s1 = comments <|> space' *> s
 
 isSpace' :: Char -> Bool
 isSpace' c = isSpace c || ',' == c || isEndOfLine c
+
+comments :: Parser ()
+comments = skipMany comment
+
+comment :: Parser ()
+comment = () <$ "#" <* manyTill anyChar endOfLine
