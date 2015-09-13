@@ -73,7 +73,10 @@ variableDefinition :: Parser VariableDefinition
 variableDefinition =
     VariableDefinition <$> variable <* s <*  ":" <* s
                        <*> type_ <* s
-                       <*> value
+                       <*> (defaultValue <|> empty)
+
+defaultValue :: Parser DefaultValue
+defaultValue = "=" *> s *> value
 
  -- In defense of good taste, I'm taking liberty of not allowing space between
  -- '$' and the 'name' even though that's not in the spec.
@@ -248,6 +251,7 @@ unionTypeDefinition :: Parser UnionTypeDefinition
 unionTypeDefinition = UnionTypeDefinition
     <$  "union" <* s1
     <*> name <* s
+    <*  "=" <* s
     <*> unionMembers
   where
     -- This should take care of standalone `NamedType`
