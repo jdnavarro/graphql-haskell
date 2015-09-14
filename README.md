@@ -7,11 +7,14 @@ but the idea is to be a Haskell port of
 [`graphql-js`](https://github.com/graphql/graphql-js). Next releases
 should include:
 
+- [x] GraphQL AST
 - [ ] Parser for the GraphQL language.
-- [ ] Data types for the GraphQL Schema language.
+- [ ] GraphQL Schema AST.
 - [ ] Parser for the GraphQL Schema language.
 - [ ] Interpreter of GraphQL requests.
 - [ ] Utilities to define GraphQL types and schema.
+
+See the TODO file for more concrete tasks.
 
 ## Contact
 

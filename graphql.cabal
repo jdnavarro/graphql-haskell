@@ -1,9 +1,9 @@
 name:                graphql
-version:             0.1
+version:             0.2
 synopsis:            Haskell GraphQL implementation
 description:
-  For now this package provides the data types for the GraphQL language.
-  Further releases will cover more aspects of the GraphQL specification.
+  This package provides a rudimentary parser for the
+  <https://facebook.github.io/graphql/ GraphQL> language.
 homepage:            https://github.com/jdnavarro/graphql-haskell
 bug-reports:         https://github.com/jdnavarro/graphql-haskell/issues
 license:             BSD3
