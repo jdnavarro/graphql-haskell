@@ -1,10 +1,17 @@
 ## AST
+- Simplify unnecessary `newtypes` with type synonyms
 - Data type accessors
-- Deal with Location
 - Deal with Strictness/unboxing
+- Deal with Location
 
 ## Parser
-- Guard `type_` and `value` match when used together
+- Handle comments
+- Secure Names
+- Optimize `name`: `take...`, `T.fold`, ...
+- Handle escape characters in string literals
+- Guard for `on` in `FragmentSpread`
 - Tests!
-- Simplify unnecessary `newtypes` with type synonyms
-- Handle errors
+- Handle `[Const]` grammar parameter. Need examples
+- Arbitrary precision for number values?
+- Handle errors. Perhaps port to `parsers` or use a lexer and
+ `regex-applicative`
