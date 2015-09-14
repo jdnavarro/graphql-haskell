@@ -22,12 +22,12 @@ data OperationDefinition =
   -- -- | Subscription Name [VariableDefinition] [Directive] SelectionSet
     deriving (Eq,Show)
 
-data VariableDefinition = VariableDefinition Variable Type DefaultValue
+data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
                           deriving (Eq,Show)
 
 newtype Variable = Variable Name deriving (Eq,Show)
 
-newtype SelectionSet = SelectionSet [Selection] deriving (Eq,Show)
+type SelectionSet = [Selection]
 
 data Selection = SelectionField Field
                | SelectionFragmentSpread FragmentSpread
@@ -118,7 +118,7 @@ data FieldDefinition = FieldDefinition Name ArgumentsDefinition Type
 
 type ArgumentsDefinition = [InputValueDefinition]
 
-data InputValueDefinition = InputValueDefinition Name Type DefaultValue
+data InputValueDefinition = InputValueDefinition Name Type (Maybe DefaultValue)
                             deriving (Eq,Show)
 
 data InterfaceTypeDefinition = InterfaceTypeDefinition Name [FieldDefinition]

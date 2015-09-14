@@ -2,9 +2,10 @@
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
-import Control.Applicative (Alternative, (<|>), empty, many)
+import Control.Applicative (Alternative, (<|>), empty, many, optional)
 import Data.Char
 
+import Data.Text (Text)
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
@@ -15,6 +16,7 @@ import Data.Attoparsec.Text
   , isEndOfLine
   , many1
   , manyTill
+  , option
   , satisfy
   , sepBy
   , sepBy1
@@ -23,6 +25,7 @@ import Data.Attoparsec.Text
   , skipWhile
   , signed
   , space
+  , takeTill
   , takeWhile
   , takeWhile1
   )
@@ -34,19 +37,18 @@ import Data.GraphQL.AST
 -- XXX: Handle starting `_` and no number at the beginning:
 -- https://facebook.github.io/graphql/#sec-Names
 name :: Parser Name
-name = takeWhile1 isAlphaNum
+name = tok $ takeWhile1 isAlphaNum
 
 -- * Document
 
 document :: Parser Document
-document = s *>
-    (Document <$> many1_ definition
-             -- Try SelectionSet when no definition
-              <|> Document <$> pure
-                           <$> DefinitionOperation
-                           <$> Query mempty empty empty
-                           <$> selectionSet)
-    <*  s
+document = whiteSpace *>
+       (Document <$> many1 definition)
+    -- Try SelectionSet when no definition
+    <|> (Document . pure
+                  . DefinitionOperation
+                  . Query mempty empty empty
+                <$> selectionSet)
     <?> "document error!"
 
 definition :: Parser Definition
@@ -61,30 +63,29 @@ operationDefinition =
     <|> op Mutation "mutation"
     <?> "operationDefinition error!"
   where
-    op f n = f <$ n <* s1 <*> name <* s1
-                          <*> (variableDefinitions <* s <|> empty)
-                          <*> directives <* s
-                          <*> selectionSet
+    op f n = f <$ tok n <*> tok name
+                        <*> optempty variableDefinitions
+                        <*> optempty directives
+                        <*> selectionSet
 
 variableDefinitions :: Parser [VariableDefinition]
-variableDefinitions = "(" *> s *> many1_ variableDefinition <* s <* ")"
+variableDefinitions = parens (many1 variableDefinition)
 
 variableDefinition :: Parser VariableDefinition
 variableDefinition =
-    VariableDefinition <$> variable <* s <*  ":" <* s
-                       <*> type_ <* s
-                       <*> (defaultValue <|> empty)
+    VariableDefinition <$> variable
+                       <*  tok ":"
+                       <*> type_
+                       <*> optional defaultValue
 
 defaultValue :: Parser DefaultValue
-defaultValue = "=" *> s *> value
+defaultValue = tok "=" *> value
 
- -- In defense of good taste, I'm taking liberty of not allowing space between
- -- '$' and the 'name' even though that's not in the spec.
 variable :: Parser Variable
-variable = Variable <$ "$" <*> name
+variable = Variable <$ tok "$" <*> name
 
 selectionSet :: Parser SelectionSet
-selectionSet = "{" *> s *> (SelectionSet <$> many1_ selection) <* s <* "}"
+selectionSet = braces $ many1 selection
 
 selection :: Parser Selection
 selection = SelectionField <$> field
@@ -94,44 +95,48 @@ selection = SelectionField <$> field
         <?> "selection error!"
 
 field :: Parser Field
-field = Field <$> (alias <* s1 <|> empty)
-              <*> name <* s
-              <*> (arguments <* s <|> empty)
-              <*> directives <* s
-              <*> selectionSet
-              <?> "field error!"
+field = Field <$> optempty alias
+              <*> name
+              <*> optempty arguments
+              <*> optempty directives
+              <*> optempty selectionSet
 
 alias :: Parser Alias
-alias = name <* s <* ":"
+alias = name <* tok ":"
 
 arguments :: Parser [Argument]
-arguments = "(" *> s *> many1_ argument <* s <* ")"
+arguments = parens $ many1 argument
 
 argument :: Parser Argument
-argument = Argument <$> name <* s <* ":" <* s <*> value
+argument = Argument <$> name <* tok ":" <*> value
 
 -- * Fragments
 
 fragmentSpread :: Parser FragmentSpread
 -- TODO: Make sure it fails when `... on`.
 -- See https://facebook.github.io/graphql/#FragmentSpread
-fragmentSpread = FragmentSpread <$ "..." <* s <*> name <* s1 <*> many_ directive
+fragmentSpread = FragmentSpread
+    <$  tok "..."
+    <*> name
+    <*> optempty directives
 
 -- InlineFragment tried first in order to guard against 'on' keyword
 inlineFragment :: Parser InlineFragment
-inlineFragment = InlineFragment <$ "..." <* s <* "on" <* s1
-             <*> typeCondition <* s
-             <*> directives <* s
-             <*> selectionSet
+inlineFragment = InlineFragment
+    <$  tok "..."
+    <*  tok "on"
+    <*> typeCondition
+    <*> optempty directives
+    <*> selectionSet
 
 fragmentDefinition :: Parser FragmentDefinition
-fragmentDefinition =
-    FragmentDefinition <$  "fragment" <* s1
-                       <*> name <* s
-                       <*  "on" <* s1
-                       <*> typeCondition <* s
-                       <*> directives <* s
-                       <*> selectionSet
+fragmentDefinition = FragmentDefinition
+    <$  tok "fragment"
+    <*> name
+    <*  tok "on"
+    <*> typeCondition
+    <*> optempty directives
+    <*> selectionSet
 
 typeCondition :: Parser TypeCondition
 typeCondition = namedType
@@ -146,22 +151,22 @@ value = -- TODO: Handle arbitrary precision.
     <|> ValueFloat   <$> signed double
     <|> ValueBoolean <$> bool
     -- TODO: Handle escape characters, unicode, etc
-    <|> ValueString <$ "\"" <*> takeWhile isAlphaNum <* "\""
+    <|> ValueString  <$ "\"" <*> takeWhile isAlphaNum <* "\""
     -- `true` and `false` have been tried before
-    <|> ValueEnum <$> name
-    <|> ValueList <$> listValue
-    <|> ValueObject <$> objectValue
+    <|> ValueEnum    <$> name
+    <|> ValueList    <$> listValue
+    <|> ValueObject  <$> objectValue
 
 -- Notice it can be empty
 listValue :: Parser ListValue
-listValue = ListValue <$ "[" <* s <*> many_ value <* s <* "]"
+listValue = ListValue <$> brackets (many value)
 
 -- Notice it can be empty
 objectValue :: Parser ObjectValue
-objectValue = ObjectValue <$ "{" <* s <*> many_ objectField <* s <* "}"
+objectValue = ObjectValue <$> braces (many objectField)
 
 objectField :: Parser ObjectField
-objectField = ObjectField <$> name <* s <* ":" <* s <*> value
+objectField = ObjectField <$> name <* tok ":" <*> value
 
 bool :: Parser Bool
 bool = True  <$ "true"
@@ -170,10 +175,13 @@ bool = True  <$ "true"
 -- * Directives
 
 directives :: Parser [Directive]
-directives = many_ directive
+directives = many1 directive
 
 directive :: Parser Directive
-directive = Directive <$ "@" <*> name <* s <*> arguments
+directive = Directive
+    <$  tok "@"
+    <*> name
+    <*> optempty arguments
 
 -- * Type Reference
 
@@ -186,16 +194,14 @@ namedType :: Parser NamedType
 namedType = NamedType <$> name
 
 listType :: Parser ListType
-listType = ListType <$ "[" <* s <*> type_ <* s <* "]"
+listType = ListType <$> brackets type_
 
 nonNullType :: Parser NonNullType
-nonNullType = NonNullTypeNamed <$> namedType <* s <* "!"
-          <|> NonNullTypeList  <$> listType  <* s <* "!"
+nonNullType = NonNullTypeNamed <$> namedType <* tok "!"
+          <|> NonNullTypeList  <$> listType  <* tok "!"
 
 -- * Type Definition
 
--- TODO: what is Const Variable?
--- https://facebook.github.io/graphql/#Value
 typeDefinition :: Parser TypeDefinition
 typeDefinition =
         TypeDefinitionObject        <$> objectTypeDefinition
@@ -209,102 +215,113 @@ typeDefinition =
 
 objectTypeDefinition :: Parser ObjectTypeDefinition
 objectTypeDefinition = ObjectTypeDefinition
-    <$  "type" <* s1
-    <*> name <* s1
-    <*> (interfaces <* s <|> empty)
+    <$  tok "type"
+    <*> name
+    <*> optempty interfaces
     <*> fieldDefinitions
     <?> "objectTypeDefinition error!"
 
 interfaces :: Parser Interfaces
-interfaces = "implements" *> s1 *> many1_ namedType
+interfaces = tok "implements" *> many1 namedType
 
 fieldDefinitions :: Parser [FieldDefinition]
-fieldDefinitions = "{" *> s *> many1_ fieldDefinition <* s <* "}"
+fieldDefinitions = braces $ many1 fieldDefinition
 
 fieldDefinition :: Parser FieldDefinition
 fieldDefinition = FieldDefinition
-    <$> name <* s
-    <*> (argumentsDefinition <* s <|> empty)
-    <*  ":" <* s
+    <$> name
+    <*> optempty argumentsDefinition
+    <*  tok ":"
     <*> type_
 
 argumentsDefinition :: Parser ArgumentsDefinition
 argumentsDefinition = inputValueDefinitions
 
 inputValueDefinitions :: Parser [InputValueDefinition]
-inputValueDefinitions = "(" *> s *> many1_ inputValueDefinition <* s <* ")"
+inputValueDefinitions = parens $ many1 inputValueDefinition
 
 inputValueDefinition :: Parser InputValueDefinition
 inputValueDefinition = InputValueDefinition
-    <$> name <* s
-    <*  ":" <* s
-    <*> type_ <* s
-    <*> (value <|> empty)
+    <$> name
+    <*  tok ":"
+    <*> type_
+    <*> optional defaultValue
 
 interfaceTypeDefinition :: Parser InterfaceTypeDefinition
 interfaceTypeDefinition = InterfaceTypeDefinition
-    <$  "interface" <* s1
-    <*> name <* s
+    <$  tok "interface"
+    <*> name
     <*> fieldDefinitions
 
 unionTypeDefinition :: Parser UnionTypeDefinition
 unionTypeDefinition = UnionTypeDefinition
-    <$  "union" <* s1
-    <*> name <* s
-    <*  "=" <* s
+    <$  tok "union"
+    <*> name
+    <*  tok "="
     <*> unionMembers
-  where
-    -- This should take care of standalone `NamedType`
-    unionMembers = namedType `sepBy1` (s *> "|" <* s)
+
+unionMembers :: Parser [NamedType]
+unionMembers = namedType `sepBy1` tok "|"
 
 scalarTypeDefinition :: Parser ScalarTypeDefinition
-scalarTypeDefinition = ScalarTypeDefinition <$  "scalar" <* s1 <*> name
+scalarTypeDefinition = ScalarTypeDefinition
+    <$  tok "scalar"
+    <*> name
 
 enumTypeDefinition :: Parser EnumTypeDefinition
 enumTypeDefinition = EnumTypeDefinition
-    <$  "enum" <* s1
-    <*> name <* s
+    <$  tok "enum"
+    <*> name
     <*> enumValueDefinitions
 
 enumValueDefinitions :: Parser [EnumValueDefinition]
-enumValueDefinitions = "{" *> s *> many1_ enumValueDefinition <* s <* "}"
+enumValueDefinitions = braces $ many1 enumValueDefinition
 
 enumValueDefinition :: Parser EnumValueDefinition
 enumValueDefinition = EnumValueDefinition <$> name
 
 inputObjectTypeDefinition :: Parser InputObjectTypeDefinition
 inputObjectTypeDefinition = InputObjectTypeDefinition
-    <$  "input" <* s1
-    <*> name <* s
+    <$  tok "input"
+    <*> name
     <*> inputValueDefinitions
 
 typeExtensionDefinition :: Parser TypeExtensionDefinition
 typeExtensionDefinition = TypeExtensionDefinition
-    <$  "extend" <* s1
+    <$  tok "extend"
     <*> objectTypeDefinition
 
 -- * Internal
 
-many_ :: Parser a -> Parser [a]
-many_ = flip sepBy space'
+tok :: Parser a -> Parser a
+tok p = p <* whiteSpace
 
-many1_ :: Parser a -> Parser [a]
-many1_ = flip sepBy1 space'
+parens :: Parser a -> Parser a
+parens = between "(" ")"
 
-space' :: Parser Char
-space' = satisfy isSpace'
+braces :: Parser a -> Parser a
+braces = between "{" "}"
 
-s :: Parser ()
-s = comments <|> skipWhile isSpace'
+brackets :: Parser a -> Parser a
+brackets = between "[" "]"
 
-s1 :: Parser ()
-s1 = comments <|> space' *> s
+between :: Parser Text -> Parser Text -> Parser a -> Parser a
+between open close p = tok open *> p <* tok close
 
-isSpace' :: Char -> Bool
-isSpace' c = isSpace c || ',' == c || isEndOfLine c
+-- `empty` /= `pure mempty` for `Parser`.
+optempty :: Monoid a => Parser a -> Parser a
+optempty = option mempty
+
+-- ** WhiteSpace
+--
+whiteSpace :: Parser ()
+whiteSpace = comments
+    <|> skipWhile (\c -> isSpace c
+                      || ',' == c
+                      || isEndOfLine c)
 
 comments :: Parser ()
 comments = skipMany comment
 
-comment :: Parser ()
-comment = () <$ "#" <* manyTill anyChar endOfLine
+comment :: Parser Text
+comment = "#" *> takeTill isEndOfLine
