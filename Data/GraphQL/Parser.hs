@@ -3,7 +3,7 @@
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
-import Control.Applicative (Alternative, (<|>), empty, many, optional)
+import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char
 
@@ -15,23 +15,13 @@ import Data.Attoparsec.Text
   , decimal
   , double
   , endOfLine
-  , isEndOfLine
-  , letter
   , many1
   , manyTill
   , option
   , peekChar
   , satisfy
-  , sepBy
   , sepBy1
-  , skipMany
-  , skipSpace
-  , skipWhile
   , signed
-  , space
-  , takeTill
-  , takeWhile
-  , takeWhile1
   )
 
 import Data.GraphQL.AST
