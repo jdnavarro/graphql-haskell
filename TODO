@@ -5,9 +5,8 @@
 - Deal with Location
 
 ## Parser
-- Handle comments
 - Secure Names
-- Optimize `name`: `take...`, `T.fold`, ...
+- Optimize `name` and `whiteSpace`: `take...`, `T.fold`, ...
 - Handle escape characters in string literals
 - Guard for `on` in `FragmentSpread`
 - Tests!

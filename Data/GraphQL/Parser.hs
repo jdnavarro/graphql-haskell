@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
 import Control.Applicative (Alternative, (<|>), empty, many, optional)
+import Control.Monad (when)
 import Data.Char
 
 import Data.Text (Text, pack)
@@ -18,6 +20,7 @@ import Data.Attoparsec.Text
   , many1
   , manyTill
   , option
+  , peekChar
   , satisfy
   , sepBy
   , sepBy1
@@ -45,8 +48,8 @@ name = tok $ pack <$> many1 (satisfy isAlphaNum)
 -- * Document
 
 document :: Parser Document
-document = whiteSpace *>
-       (Document <$> many1 definition)
+document = whiteSpace
+     *> (Document <$> many1 definition)
     -- Try SelectionSet when no definition
     <|> (Document . pure
                   . DefinitionOperation
@@ -322,11 +325,8 @@ optempty = option mempty
 -- ** WhiteSpace
 --
 whiteSpace :: Parser ()
-whiteSpace =
-    skipMany (satisfy (\c -> isSpace c || ',' == c || isEndOfLine c))
-
-skipComments :: Parser ()
-skipComments = skipMany comment
-
-comment :: Parser Text
-comment = "#" *> (pack <$> manyTill anyChar endOfLine)
+whiteSpace = peekChar >>= \case
+    Just c -> if isSpace c || c == ','
+              then anyChar *> whiteSpace
+              else when (c == '#') $ manyTill anyChar endOfLine *> whiteSpace
+    _ -> return ()
