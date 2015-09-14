@@ -5,7 +5,7 @@ import Prelude hiding (takeWhile)
 import Control.Applicative (Alternative, (<|>), empty, many, optional)
 import Data.Char
 
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
@@ -14,6 +14,7 @@ import Data.Attoparsec.Text
   , double
   , endOfLine
   , isEndOfLine
+  , letter
   , many1
   , manyTill
   , option
@@ -36,8 +37,10 @@ import Data.GraphQL.AST
 
 -- XXX: Handle starting `_` and no number at the beginning:
 -- https://facebook.github.io/graphql/#sec-Names
+-- TODO: Use takeWhile1 instead for efficiency. With takeWhile1 there is no
+-- parsing failure.
 name :: Parser Name
-name = tok $ takeWhile1 isAlphaNum
+name = tok $ pack <$> many1 (satisfy isAlphaNum)
 
 -- * Document
 
@@ -144,14 +147,14 @@ typeCondition = namedType
 -- * Values
 
 -- This will try to pick the first type it can parse. If you are working with
---   explicit types use the `typedValue` parser.
+-- explicit types use the `typedValue` parser.
 value :: Parser Value
 value = -- TODO: Handle arbitrary precision.
         ValueInt     <$> signed decimal
     <|> ValueFloat   <$> signed double
     <|> ValueBoolean <$> bool
     -- TODO: Handle escape characters, unicode, etc
-    <|> ValueString  <$ "\"" <*> takeWhile isAlphaNum <* "\""
+    <|> ValueString  <$ "\"" <*> (pack <$> many anyChar) <* "\""
     -- `true` and `false` have been tried before
     <|> ValueEnum    <$> name
     <|> ValueList    <$> listValue
@@ -315,13 +318,11 @@ optempty = option mempty
 -- ** WhiteSpace
 --
 whiteSpace :: Parser ()
-whiteSpace = comments
-    <|> skipWhile (\c -> isSpace c
-                      || ',' == c
-                      || isEndOfLine c)
+whiteSpace =
+    skipMany (satisfy (\c -> isSpace c || ',' == c || isEndOfLine c))
 
-comments :: Parser ()
-comments = skipMany comment
+skipComments :: Parser ()
+skipComments = skipMany comment
 
 comment :: Parser Text
-comment = "#" *> takeTill isEndOfLine
+comment = "#" *> (pack <$> manyTill anyChar endOfLine)
