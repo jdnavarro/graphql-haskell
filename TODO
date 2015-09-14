@@ -14,3 +14,8 @@
 - Arbitrary precision for number values?
 - Handle errors. Perhaps port to `parsers` or use a lexer and
  `regex-applicative`
+
+## Tests
+
+- Golden data within package, `path_graphql` macro.
+- Pretty Print golden result
