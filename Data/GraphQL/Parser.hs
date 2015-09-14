@@ -149,12 +149,13 @@ typeCondition = namedType
 -- This will try to pick the first type it can parse. If you are working with
 -- explicit types use the `typedValue` parser.
 value :: Parser Value
-value = -- TODO: Handle arbitrary precision.
-        ValueInt     <$> signed decimal
-    <|> ValueFloat   <$> signed double
+value = ValueVariable <$> variable
+        -- TODO: Handle arbitrary precision.
+    <|> ValueInt     <$> tok (signed decimal)
+    <|> ValueFloat   <$> tok (signed double)
     <|> ValueBoolean <$> bool
     -- TODO: Handle escape characters, unicode, etc
-    <|> ValueString  <$ "\"" <*> (pack <$> many anyChar) <* "\""
+    <|> ValueString  <$> quotes name
     -- `true` and `false` have been tried before
     <|> ValueEnum    <$> name
     <|> ValueList    <$> listValue
@@ -172,8 +173,8 @@ objectField :: Parser ObjectField
 objectField = ObjectField <$> name <* tok ":" <*> value
 
 bool :: Parser Bool
-bool = True  <$ "true"
-   <|> False <$ "false"
+bool = True  <$ tok "true"
+   <|> False <$ tok "false"
 
 -- * Directives
 
@@ -304,6 +305,9 @@ parens = between "(" ")"
 
 braces :: Parser a -> Parser a
 braces = between "{" "}"
+
+quotes :: Parser a -> Parser a
+quotes = between "\"" "\""
 
 brackets :: Parser a -> Parser a
 brackets = between "[" "]"
