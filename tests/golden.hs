@@ -1,6 +1,10 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>), pure)
+#endif
 import Control.Monad ((>=>))
 import Data.Attoparsec.Text (parseOnly)
 import Data.ByteString.Lazy.Char8 as B8

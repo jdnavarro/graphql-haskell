@@ -1,12 +1,17 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>), (*>), (<*), (<$), pure)
+import Data.Monoid (Monoid, mempty)
+#endif
 import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char
-
 import Data.Text (Text, pack)
 import Data.Attoparsec.Text
   ( Parser
