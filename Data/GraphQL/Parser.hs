@@ -150,7 +150,6 @@ value :: Parser Value
 value = ValueVariable <$> variable
     -- TODO: Handle maxBound, Int32 in spec.
     <|> ValueInt      <$> tok (signed decimal)
-    -- There is a stock `parser` for double but not for float.
     <|> ValueFloat    <$> tok (signed double)
     <|> ValueBoolean  <$> bool
     -- TODO: Handle escape characters, unicode, etc

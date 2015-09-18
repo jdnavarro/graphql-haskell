@@ -1,5 +1,6 @@
 module Data.GraphQL.AST where
 
+import Data.Int (Int32)
 import Data.Text (Text)
 
 -- * Name
@@ -61,7 +62,8 @@ type TypeCondition = NamedType
 -- * Values
 
 data Value = ValueVariable Variable
-           | ValueInt Int
+           | ValueInt Int32
+           -- GraphQL Float is double precison
            | ValueFloat Double
            | ValueBoolean Bool
            | ValueString Text
