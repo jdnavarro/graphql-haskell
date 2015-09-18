@@ -21,6 +21,6 @@ See the TODO file for more concrete tasks.
 
 Suggestions, contributions and bug reports are welcome.
 
-Feel free to contact me, jdnavarro, on the #haskell channel on the
-[GraphQL Slack Server](https://graphql.slack.com). You can obtain an
+Feel free to contact on Slack in [#haskell on
+GraphQL](https://graphql.slack.com/messages/haskell/). You can obtain an
 invitation [here](https://graphql-slack.herokuapp.com/).

@@ -34,6 +34,7 @@ test-suite golden
   hs-source-dirs:      tests
   main-is:             golden.hs
   ghc-options:         -Wall
+  other-modules:       Paths_graphql
   build-depends:       base >= 4.6 && <5,
                        bytestring,
                        text,

@@ -1,21 +1,23 @@
 ## AST
 - Simplify unnecessary `newtypes` with type synonyms
+- Simplify wrapper type constructors. Some types can be just constructors.
 - Data type accessors
-- Deal with Strictness/unboxing
-- Deal with Location
+- Deal with strictness/unboxing
+- Deal with location
 
 ## Parser
 - Secure Names
 - Optimize `name` and `whiteSpace`: `take...`, `T.fold`, ...
 - Handle escape characters in string literals
 - Guard for `on` in `FragmentSpread`
-- Tests!
 - Handle `[Const]` grammar parameter. Need examples
-- Arbitrary precision for number values?
-- Handle errors. Perhaps port to `parsers` or use a lexer and
- `regex-applicative`
+- Handle `maxBound` Int values.
+- Diagnostics. Perhaps port to `parsers` and use `trifecta` for diagnostics,
+  and `attoparsec` for performance.
+- Improve comment handling: perhaps front the main parser with a lexer.
 
 ## Tests
 
-- Golden data within package, `path_graphql` macro.
-- Pretty Print golden result
+- Pretty print golden result
+
+## Docs!

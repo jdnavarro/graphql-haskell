@@ -61,8 +61,8 @@ type TypeCondition = NamedType
 -- * Values
 
 data Value = ValueVariable Variable
-           | ValueInt Int -- TODO: Should this be `Integer`?
-           | ValueFloat Double -- TODO: Should this be `Scientific`?
+           | ValueInt Int
+           | ValueFloat Double
            | ValueBoolean Bool
            | ValueString Text
            | ValueEnum Name

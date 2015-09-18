@@ -148,16 +148,17 @@ typeCondition = namedType
 -- explicit types use the `typedValue` parser.
 value :: Parser Value
 value = ValueVariable <$> variable
-        -- TODO: Handle arbitrary precision.
-    <|> ValueInt     <$> tok (signed decimal)
-    <|> ValueFloat   <$> tok (signed double)
-    <|> ValueBoolean <$> bool
+    -- TODO: Handle maxBound, Int32 in spec.
+    <|> ValueInt      <$> tok (signed decimal)
+    -- There is a stock `parser` for double but not for float.
+    <|> ValueFloat    <$> tok (signed double)
+    <|> ValueBoolean  <$> bool
     -- TODO: Handle escape characters, unicode, etc
-    <|> ValueString  <$> quotes name
+    <|> ValueString   <$> quotes name
     -- `true` and `false` have been tried before
-    <|> ValueEnum    <$> name
-    <|> ValueList    <$> listValue
-    <|> ValueObject  <$> objectValue
+    <|> ValueEnum     <$> name
+    <|> ValueList     <$> listValue
+    <|> ValueObject   <$> objectValue
 
 -- Notice it can be empty
 listValue :: Parser ListValue
