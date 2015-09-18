@@ -66,11 +66,13 @@ data Value = ValueVariable Variable
            -- GraphQL Float is double precison
            | ValueFloat Double
            | ValueBoolean Bool
-           | ValueString Text
+           | ValueString StringValue
            | ValueEnum Name
            | ValueList ListValue
            | ValueObject ObjectValue
              deriving (Eq,Show)
+
+newtype StringValue = StringValue Text deriving (Eq,Show)
 
 newtype ListValue = ListValue [Value] deriving (Eq,Show)
 

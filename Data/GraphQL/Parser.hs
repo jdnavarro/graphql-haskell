@@ -14,6 +14,7 @@ import Data.Char
 import Data.Foldable (traverse_)
 
 import Data.Text (Text, append)
+import qualified Data.Text as T
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
@@ -28,6 +29,7 @@ import Data.Attoparsec.Text
   , peekChar
   , sepBy1
   , signed
+  , takeText
   , takeWhile
   , takeWhile1
   )
@@ -156,12 +158,22 @@ value = ValueVariable <$> variable
     <|> ValueInt      <$> tok (signed decimal)
     <|> ValueFloat    <$> tok (signed double)
     <|> ValueBoolean  <$> bool
-    -- TODO: Handle escape characters, unicode, etc
-    <|> ValueString   <$> quotes name
+    <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
     <|> ValueEnum     <$> name
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
+
+
+stringValue :: Parser StringValue
+stringValue = StringValue <$> quotes (T.foldl' step mempty <$> takeText)
+  where
+    -- TODO: Handle unicode and the rest of escaped chars.
+    step acc c
+        | T.null acc = T.singleton c
+        | T.last acc == '\\' = if c == '"' then T.init acc `T.snoc` '"'
+                                           else acc `T.snoc` c
+        | otherwise = acc `T.snoc` c
 
 -- Notice it can be empty
 listValue :: Parser ListValue
