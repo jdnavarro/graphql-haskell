@@ -6,15 +6,13 @@
 - Deal with location
 
 ## Parser
-- Secure Names
-- Optimize `name` and `whiteSpace`: `take...`, `T.fold`, ...
 - Handle escape characters in string literals
 - Guard for `on` in `FragmentSpread`
 - Handle `[Const]` grammar parameter. Need examples
 - Handle `maxBound` Int values.
 - Diagnostics. Perhaps port to `parsers` and use `trifecta` for diagnostics,
   and `attoparsec` for performance.
-- Improve comment handling: perhaps front the main parser with a lexer.
+- Optimize `whiteSpace`, perhaps front the main parser with a lexer.
 
 ## Tests
 

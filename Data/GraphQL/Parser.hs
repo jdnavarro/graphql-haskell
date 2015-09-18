@@ -12,7 +12,7 @@ import Data.Monoid (Monoid, mempty)
 import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char
-import Data.Text (Text, pack)
+import Data.Text (Text, append)
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
@@ -20,25 +20,28 @@ import Data.Attoparsec.Text
   , decimal
   , double
   , endOfLine
+  , inClass
   , many1
   , manyTill
   , option
   , peekChar
-  , satisfy
   , sepBy1
   , signed
+  , takeWhile
+  , takeWhile1
   )
 
 import Data.GraphQL.AST
 
 -- * Name
 
--- XXX: Handle starting `_` and no number at the beginning:
--- https://facebook.github.io/graphql/#sec-Names
--- TODO: Use takeWhile1 instead for efficiency. With takeWhile1 there is no
--- parsing failure.
 name :: Parser Name
-name = tok $ pack <$> many1 (satisfy isAlphaNum)
+name = tok $ append <$> takeWhile1 isA_z
+                    <*> takeWhile ((||) <$> isDigit <*> isA_z)
+  where
+    -- `isAlpha` handles many more Unicode Chars
+    isA_z =  inClass $ '_' : ['A'..'Z'] ++ ['a'..'z']
+
 
 -- * Document
 
