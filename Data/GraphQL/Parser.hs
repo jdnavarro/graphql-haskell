@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
@@ -12,6 +11,8 @@ import Data.Monoid (Monoid, mempty)
 import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char
+import Data.Foldable (traverse_)
+
 import Data.Text (Text, append)
 import Data.Attoparsec.Text
   ( Parser
@@ -323,8 +324,7 @@ optempty = option mempty
 -- ** WhiteSpace
 --
 whiteSpace :: Parser ()
-whiteSpace = peekChar >>= \case
-    Just c -> if isSpace c || c == ','
-              then anyChar *> whiteSpace
-              else when (c == '#') $ manyTill anyChar endOfLine *> whiteSpace
-    _ -> return ()
+whiteSpace = peekChar >>= traverse_ (\c ->
+    if isSpace c || c == ','
+       then anyChar *> whiteSpace
+       else when (c == '#') $ manyTill anyChar endOfLine *> whiteSpace)
