@@ -24,24 +24,25 @@ library
   ghc-options:         -Wall
   exposed-modules:     Data.GraphQL.AST
                        Data.GraphQL.Parser
+                       Data.GraphQL.Printer
   build-depends:       base >= 4.7 && < 5,
                        text >=0.11.3.1,
                        attoparsec >=0.10.4.0
 
-test-suite golden
-  default-language:    Haskell2010
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      tests
-  main-is:             golden.hs
-  ghc-options:         -Wall
-  other-modules:       Paths_graphql
-  build-depends:       base >= 4.6 && <5,
-                       bytestring,
-                       text,
-                       attoparsec,
-                       tasty >=0.10,
-                       tasty-golden,
-                       graphql
+-- test-suite golden
+--   default-language:    Haskell2010
+--   type:                exitcode-stdio-1.0
+--   hs-source-dirs:      tests
+--   main-is:             golden.hs
+--   ghc-options:         -Wall
+--   other-modules:       Paths_graphql
+--   build-depends:       base >= 4.6 && <5,
+--                        bytestring,
+--                        text,
+--                        attoparsec,
+--                        tasty >=0.10,
+--                        tasty-golden,
+--                        graphql
 
 source-repository head
   type:     git
