@@ -45,7 +45,6 @@ name = tok $ append <$> takeWhile1 isA_z
     -- `isAlpha` handles many more Unicode Chars
     isA_z =  inClass $ '_' : ['A'..'Z'] ++ ['a'..'z']
 
-
 -- * Document
 
 document :: Parser Document
@@ -54,7 +53,8 @@ document = whiteSpace
     -- Try SelectionSet when no definition
     <|> (Document . pure
                   . DefinitionOperation
-                  . Query mempty empty empty
+                  . Query
+                  . Node mempty empty empty
                 <$> selectionSet)
     <?> "document error!"
 
@@ -66,14 +66,15 @@ definition = DefinitionOperation <$> operationDefinition
 
 operationDefinition :: Parser OperationDefinition
 operationDefinition =
-        op Query "query"
-    <|> op Mutation "mutation"
+        Query    <$ tok "query"    <*> node
+    <|> Mutation <$ tok "mutation" <*> node
     <?> "operationDefinition error!"
-  where
-    op f n = f <$ tok n <*> tok name
-                        <*> optempty variableDefinitions
-                        <*> optempty directives
-                        <*> selectionSet
+
+node :: Parser Node
+node = Node <$> name
+            <*> optempty variableDefinitions
+            <*> optempty directives
+            <*> selectionSet
 
 variableDefinitions :: Parser [VariableDefinition]
 variableDefinitions = parens (many1 variableDefinition)

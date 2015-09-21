@@ -16,12 +16,12 @@ data Definition = DefinitionOperation OperationDefinition
                 | DefinitionType      TypeDefinition
                   deriving (Eq,Show)
 
-data OperationDefinition =
-    Query        Name [VariableDefinition] [Directive] SelectionSet
-  | Mutation     Name [VariableDefinition] [Directive] SelectionSet
-  -- Not official yet
-  -- -- | Subscription Name [VariableDefinition] [Directive] SelectionSet
-    deriving (Eq,Show)
+data OperationDefinition = Query    Node
+                         | Mutation Node
+                           deriving (Eq,Show)
+
+data Node = Node Name [VariableDefinition] [Directive] SelectionSet
+            deriving (Eq,Show)
 
 data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
                           deriving (Eq,Show)
