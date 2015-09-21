@@ -163,6 +163,7 @@ value = ValueVariable <$> variable
     <|> ValueEnum     <$> name
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
+    <?> "value error!"
 
 
 stringValue :: Parser StringValue
@@ -207,6 +208,7 @@ type_ :: Parser Type
 type_ = TypeNamed   <$> namedType
     <|> TypeList    <$> listType
     <|> TypeNonNull <$> nonNullType
+    <?> "type_ error!"
 
 namedType :: Parser NamedType
 namedType = NamedType <$> name
@@ -217,6 +219,7 @@ listType = ListType <$> brackets type_
 nonNullType :: Parser NonNullType
 nonNullType = NonNullTypeNamed <$> namedType <* tok "!"
           <|> NonNullTypeList  <$> listType  <* tok "!"
+          <?> "nonNullType error!"
 
 -- * Type Definition
 
@@ -237,7 +240,6 @@ objectTypeDefinition = ObjectTypeDefinition
     <*> name
     <*> optempty interfaces
     <*> fieldDefinitions
-    <?> "objectTypeDefinition error!"
 
 interfaces :: Parser Interfaces
 interfaces = tok "implements" *> many1 namedType
