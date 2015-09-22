@@ -4,17 +4,14 @@ module Data.GraphQL.Printer where
 import Prelude hiding (unwords)
 import Data.Monoid ((<>))
 
-import Data.Text (Text, intercalate, pack, unwords)
+import Data.Text (Text, cons, intercalate, pack, snoc)
 
 import Data.GraphQL.AST
-
--- Uniplate could avoid boilerplate, but is it worth bringing the
--- extra dependency?
 
 -- * Document
 
 document :: Document -> Text
-document (Document defs) = intercalate "\n\n" $ definition <$> defs
+document (Document defs) = mconcat $ definition <$> defs
 
 definition :: Definition -> Text
 definition (DefinitionOperation x) = operationDefinition x
@@ -29,25 +26,24 @@ node :: Node -> Text
 node (Node name vds ds ss) =
        name
     <> optempty variableDefinitions vds
-    <> optempty (("\SP" <>) . directives) ds
-    <> "\SP"
+    <> optempty directives ds
     <> selectionSet ss
 
 variableDefinitions :: [VariableDefinition] -> Text
-variableDefinitions = parens . intercalate ", " . fmap variableDefinition
+variableDefinitions = parensCommas variableDefinition
 
 variableDefinition :: VariableDefinition -> Text
 variableDefinition (VariableDefinition var ty dv) =
-    variable var <> ": " <> type_ ty <> maybe mempty defaultValue dv
+    variable var <> ":" <> type_ ty <> maybe mempty defaultValue dv
 
 defaultValue :: DefaultValue -> Text
-defaultValue val = "= " <> value val
+defaultValue val = "=" <> value val
 
 variable :: Variable -> Text
 variable (Variable name) = "$" <> name
 
 selectionSet :: SelectionSet -> Text
-selectionSet = block . fmap selection
+selectionSet = bracesCommas selection
 
 selection :: Selection -> Text
 selection (SelectionField          x) = field x
@@ -56,35 +52,35 @@ selection (SelectionFragmentSpread x) = fragmentSpread x
 
 field :: Field -> Text
 field (Field alias name args ds ss) =
-       optempty (<> ": ") alias
+       optempty (cons ':') alias
     <> name
     <> optempty arguments args
-    <> optempty (("\SP" <>) . directives) ds
-    <> optempty (("\SP" <>) . selectionSet) ss
+    <> optempty directives ds
+    <> optempty selectionSet ss
 
 arguments :: [Argument] -> Text
-arguments = parens . intercalate ", " . fmap argument
+arguments = parensCommas argument
 
 argument :: Argument -> Text
-argument (Argument name v) = name <> ": " <> value v
+argument (Argument name v) = name <> ":" <> value v
 
 -- * Fragments
 
 fragmentSpread :: FragmentSpread -> Text
 fragmentSpread (FragmentSpread name ds) =
-    "..." <> name <> optempty (spaces . directives) ds
+    "..." <> name <> optempty directives ds
 
 inlineFragment :: InlineFragment -> Text
 inlineFragment (InlineFragment (NamedType tc) ds ss) =
-    "... on" <> tc
-             <> optempty (("\SP" <>) . directives) ds
-             <> optempty (("\SP" <>) . selectionSet) ss
+    "... on " <> tc
+              <> optempty directives ds
+              <> optempty selectionSet ss
 
 fragmentDefinition :: FragmentDefinition -> Text
 fragmentDefinition (FragmentDefinition name (NamedType tc) ds ss) =
     "fragment " <> name <> " on " <> tc
-                <> optempty (("\SP" <>) . directives) ds
-                <> (("\SP" <>) . selectionSet) ss
+                <> optempty directives ds
+                <> selectionSet ss
 
 -- * Values
 
@@ -109,18 +105,18 @@ stringValue :: StringValue -> Text
 stringValue (StringValue x) = x
 
 listValue :: ListValue -> Text
-listValue (ListValue vs) = brackets . intercalate ", " $ value <$> vs
+listValue (ListValue vs) = bracketsCommas value vs
 
 objectValue :: ObjectValue -> Text
-objectValue (ObjectValue ofs) = block $ objectField <$> ofs
+objectValue (ObjectValue ofs) = bracesCommas objectField ofs
 
 objectField :: ObjectField -> Text
-objectField (ObjectField name v) = name <> ": " <> value v
+objectField (ObjectField name v) = name <> ":" <> value v
 
--- * Directives 
+-- * Directives
 
 directives :: [Directive] -> Text
-directives = withSpaces directive
+directives = spaces directive
 
 directive :: Directive -> Text
 directive (Directive name args) = "@" <> name <> optempty arguments args
@@ -136,7 +132,7 @@ namedType :: NamedType -> Text
 namedType (NamedType name) = name
 
 listType :: ListType -> Text
-listType (ListType ty) = "[" <> type_ ty <> "]"
+listType (ListType ty) = brackets (type_ ty)
 
 nonNullType :: NonNullType -> Text
 nonNullType (NonNullTypeNamed (NamedType x)) = x <> "!"
@@ -154,41 +150,34 @@ typeDefinition (TypeDefinitionTypeExtension x) = typeExtensionDefinition x
 objectTypeDefinition :: ObjectTypeDefinition -> Text
 objectTypeDefinition (ObjectTypeDefinition name ifaces fds) =
     "type " <> name
-            <> optempty (("\SP" <>) . interfaces) ifaces
-            <> optempty (("\SP" <>) . fieldDefinitions) fds
+            <> optempty (spaced . interfaces) ifaces
+            <> optempty fieldDefinitions fds
 
 interfaces :: Interfaces -> Text
-interfaces = ("implements " <>) . unwords . fmap namedType
+interfaces = ("implements " <>) . spaces namedType
 
 fieldDefinitions :: [FieldDefinition] -> Text
-fieldDefinitions = block . fmap fieldDefinition
+fieldDefinitions = bracesCommas fieldDefinition
 
 fieldDefinition :: FieldDefinition -> Text
 fieldDefinition (FieldDefinition name args ty) =
     name <> optempty argumentsDefinition args
-         <> ": "
+         <> ":"
          <> type_ ty
 
 argumentsDefinition :: ArgumentsDefinition -> Text
-argumentsDefinition = parens . intercalate ", " . fmap inputValueDefinition
-
-inputValueDefinitions :: [InputValueDefinition] -> Text
-inputValueDefinitions = block . fmap inputValueDefinition
-
-inputValueDefinition :: InputValueDefinition -> Text
-inputValueDefinition (InputValueDefinition name ty dv) =
-    name <> ": " <> type_ ty <> maybe mempty (("\SP" <>) . defaultValue) dv
+argumentsDefinition = parensCommas inputValueDefinition
 
 interfaceTypeDefinition :: InterfaceTypeDefinition -> Text
 interfaceTypeDefinition (InterfaceTypeDefinition name fds) =
-    "interface " <> name <> "\SP" <> fieldDefinitions fds
+    "interface " <> name <> fieldDefinitions fds
 
 unionTypeDefinition :: UnionTypeDefinition -> Text
 unionTypeDefinition (UnionTypeDefinition name ums) =
-    "union " <> name <> " = " <> unionMembers ums
+    "union " <> name <> "=" <> unionMembers ums
 
 unionMembers :: [NamedType] -> Text
-unionMembers = intercalate " | " . fmap namedType
+unionMembers = intercalate "|" . fmap namedType
 
 scalarTypeDefinition :: ScalarTypeDefinition -> Text
 scalarTypeDefinition (ScalarTypeDefinition name) = "scalar " <> name
@@ -196,14 +185,21 @@ scalarTypeDefinition (ScalarTypeDefinition name) = "scalar " <> name
 enumTypeDefinition :: EnumTypeDefinition -> Text
 enumTypeDefinition (EnumTypeDefinition name evds) =
     "enum " <> name
-            <> block (enumValueDefinition <$> evds)
+            <> bracesCommas enumValueDefinition evds
 
 enumValueDefinition :: EnumValueDefinition -> Text
 enumValueDefinition (EnumValueDefinition name) = name
 
 inputObjectTypeDefinition :: InputObjectTypeDefinition -> Text
 inputObjectTypeDefinition (InputObjectTypeDefinition name ivds) =
-    "input " <> name <> "\SP" <> inputValueDefinitions ivds
+    "input " <> name <> inputValueDefinitions ivds
+
+inputValueDefinitions :: [InputValueDefinition] -> Text
+inputValueDefinitions = bracesCommas inputValueDefinition
+
+inputValueDefinition :: InputValueDefinition -> Text
+inputValueDefinition (InputValueDefinition name ty dv) =
+    name <> ":" <> type_ ty <> maybe mempty defaultValue dv
 
 typeExtensionDefinition :: TypeExtensionDefinition -> Text
 typeExtensionDefinition (TypeExtensionDefinition otd) =
@@ -211,23 +207,32 @@ typeExtensionDefinition (TypeExtensionDefinition otd) =
 
 -- * Internal
 
-spaces :: Text -> Text
-spaces txt = "\SP" <> txt <> "\SP"
+spaced :: Text -> Text
+spaced = cons '\SP'
+
+between :: Char -> Char -> Text -> Text
+between open close = cons open . (`snoc` close)
 
 parens :: Text -> Text
-parens txt = "(" <> txt <> ")"
+parens = between '(' ')'
 
 brackets :: Text -> Text
-brackets txt = "[" <> txt <> "]"
+brackets = between '[' ']'
 
-withSpaces :: (a -> Text) -> [a] -> Text
-withSpaces f = intercalate "\SP" . fmap f
+braces :: Text -> Text
+braces = between '{' '}'
 
-withCommas :: (a -> Text) -> [a] -> Text
-withCommas f = intercalate ", " . fmap f
+spaces :: (a -> Text) -> [a] -> Text
+spaces f = intercalate "\SP" . fmap f
+
+parensCommas :: (a -> Text) -> [a] -> Text
+parensCommas f = parens . intercalate "," . fmap f
+
+bracketsCommas :: (a -> Text) -> [a] -> Text
+bracketsCommas f = brackets . intercalate "," . fmap f
+
+bracesCommas :: (a -> Text) -> [a] -> Text
+bracesCommas f = braces . intercalate "," . fmap f
 
 optempty :: (Eq a, Monoid a, Monoid b) => (a -> b) -> a -> b
 optempty f xs = if xs == mempty then mempty else f xs
-
-block :: [Text] -> Text
-block txts = "{\n" <> intercalate "  \n" txts <> "\n}"
