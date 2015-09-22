@@ -1,4 +1,5 @@
 ## AST
+- Docs
 - Simplify unnecessary `newtypes` with type synonyms
 - Simplify wrapper type constructors. Some types can be just constructors.
 - Data type accessors
@@ -6,6 +7,7 @@
 - Deal with location
 
 ## Parser
+- Docs
 - Handle escape characters in string literals
 - Guard for `on` in `FragmentSpread`
 - Handle `[Const]` grammar parameter. Need examples
@@ -14,8 +16,6 @@
   and `attoparsec` for performance.
 - Optimize `whiteSpace`, perhaps front the main parser with a lexer.
 
-## Tests
-
-- Pretty print golden result
-
-## Docs!
+## Printer
+- Add pretty printer.
+- Docs

@@ -9,9 +9,11 @@ but the idea is to be a Haskell port of
 should include:
 
 - [x] GraphQL AST
-- [x] Parser for the GraphQL language. See TODO for caveats.
+- [x] Parser for the GraphQL language. See TODO for limitations.
+- [x] Printer for GraphQL. This is not pretty yet.
 - [ ] GraphQL Schema AST.
 - [ ] Parser for the GraphQL Schema language.
+- [ ] Printer for the GraphQL Schema language.
 - [ ] Interpreter of GraphQL requests.
 - [ ] Utilities to define GraphQL types and schema.
 

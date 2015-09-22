@@ -1,5 +1,5 @@
 name:                graphql
-version:             0.2.1
+version:             0.3
 synopsis:            Haskell GraphQL implementation
 description:
   This package provides a rudimentary parser for the
