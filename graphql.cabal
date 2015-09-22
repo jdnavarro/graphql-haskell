@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 tested-with:         GHC == 7.8.4, GHC == 7.10.2
 extra-source-files:  README.md CHANGELOG.md stack.yaml
 data-files:          tests/data/*.graphql
-                     tests/data/*.graphql.golden
+                     tests/data/*.min.graphql
 
 library
   default-language:    Haskell2010
@@ -25,24 +25,23 @@ library
   exposed-modules:     Data.GraphQL.AST
                        Data.GraphQL.Parser
                        Data.GraphQL.Printer
-  build-depends:       base >= 4.7 && < 5,
+  build-depends:       base >=4.7 && < 5,
                        text >=0.11.3.1,
                        attoparsec >=0.10.4.0
 
--- test-suite golden
---   default-language:    Haskell2010
---   type:                exitcode-stdio-1.0
---   hs-source-dirs:      tests
---   main-is:             golden.hs
---   ghc-options:         -Wall
---   other-modules:       Paths_graphql
---   build-depends:       base >= 4.6 && <5,
---                        bytestring,
---                        text,
---                        attoparsec,
---                        tasty >=0.10,
---                        tasty-golden,
---                        graphql
+test-suite tasty
+  default-language:    Haskell2010
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             tasty.hs
+  ghc-options:         -Wall
+  other-modules:       Paths_graphql
+  build-depends:       base >=4.6 && <5,
+                       text >=0.11.3.1,
+                       attoparsec >=0.10.4.0,
+                       tasty >=0.10,
+                       tasty-hunit >=0.9,
+                       graphql
 
 source-repository head
   type:     git

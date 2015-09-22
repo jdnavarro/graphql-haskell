@@ -14,7 +14,6 @@ import Data.Char
 import Data.Foldable (traverse_)
 
 import Data.Text (Text, append)
-import qualified Data.Text as T
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
@@ -29,7 +28,6 @@ import Data.Attoparsec.Text
   , peekChar
   , sepBy1
   , signed
-  , takeText
   , takeWhile
   , takeWhile1
   )
@@ -170,15 +168,9 @@ booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
    <|> False <$ tok "false"
 
+-- TODO: Escape characters. Look at `jsstring_` in aeson package.
 stringValue :: Parser StringValue
-stringValue = StringValue <$> quotes (T.foldl' step mempty <$> takeText)
-  where
-    -- TODO: Handle unicode and the rest of escaped chars.
-    step acc c
-        | T.null acc = T.singleton c
-        | T.last acc == '\\' = if c == '"' then T.init acc `T.snoc` '"'
-                                           else acc `T.snoc` c
-        | otherwise = acc `T.snoc` c
+stringValue = StringValue <$> quotes (takeWhile (/= '"'))
 
 -- Notice it can be empty
 listValue :: Parser ListValue
@@ -205,9 +197,9 @@ directive = Directive
 -- * Type Reference
 
 type_ :: Parser Type
-type_ = TypeNamed   <$> namedType
-    <|> TypeList    <$> listType
+type_ = TypeList    <$> listType
     <|> TypeNonNull <$> nonNullType
+    <|> TypeNamed   <$> namedType
     <?> "type_ error!"
 
 namedType :: Parser NamedType

@@ -10,8 +10,9 @@ import Data.GraphQL.AST
 
 -- * Document
 
+-- TODO: Use query shorthand
 document :: Document -> Text
-document (Document defs) = mconcat $ definition <$> defs
+document (Document defs) = (`snoc` '\n') . mconcat $ definition <$> defs
 
 definition :: Definition -> Text
 definition (DefinitionOperation x) = operationDefinition x
@@ -102,7 +103,7 @@ booleanValue False = "false"
 
 -- TODO: Escape characters
 stringValue :: StringValue -> Text
-stringValue (StringValue x) = x
+stringValue (StringValue v) = quotes v
 
 listValue :: ListValue -> Text
 listValue (ListValue vs) = bracketsCommas value vs
@@ -221,6 +222,9 @@ brackets = between '[' ']'
 
 braces :: Text -> Text
 braces = between '{' '}'
+
+quotes :: Text -> Text
+quotes = between '"' '"'
 
 spaces :: (a -> Text) -> [a] -> Text
 spaces f = intercalate "\SP" . fmap f
