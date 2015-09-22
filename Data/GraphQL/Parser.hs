@@ -158,7 +158,7 @@ value = ValueVariable <$> variable
     -- TODO: Handle maxBound, Int32 in spec.
     <|> ValueInt      <$> tok (signed decimal)
     <|> ValueFloat    <$> tok (signed double)
-    <|> ValueBoolean  <$> bool
+    <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
     <|> ValueEnum     <$> name
@@ -166,6 +166,9 @@ value = ValueVariable <$> variable
     <|> ValueObject   <$> objectValue
     <?> "value error!"
 
+booleanValue :: Parser Bool
+booleanValue = True  <$ tok "true"
+   <|> False <$ tok "false"
 
 stringValue :: Parser StringValue
 stringValue = StringValue <$> quotes (T.foldl' step mempty <$> takeText)
@@ -187,10 +190,6 @@ objectValue = ObjectValue <$> braces (many objectField)
 
 objectField :: Parser ObjectField
 objectField = ObjectField <$> name <* tok ":" <*> value
-
-bool :: Parser Bool
-bool = True  <$ tok "true"
-   <|> False <$ tok "false"
 
 -- * Directives
 
@@ -256,17 +255,7 @@ fieldDefinition = FieldDefinition
     <*> type_
 
 argumentsDefinition :: Parser ArgumentsDefinition
-argumentsDefinition = inputValueDefinitions
-
-inputValueDefinitions :: Parser [InputValueDefinition]
-inputValueDefinitions = parens $ many1 inputValueDefinition
-
-inputValueDefinition :: Parser InputValueDefinition
-inputValueDefinition = InputValueDefinition
-    <$> name
-    <*  tok ":"
-    <*> type_
-    <*> optional defaultValue
+argumentsDefinition = parens $ many1 inputValueDefinition
 
 interfaceTypeDefinition :: Parser InterfaceTypeDefinition
 interfaceTypeDefinition = InterfaceTypeDefinition
@@ -306,6 +295,16 @@ inputObjectTypeDefinition = InputObjectTypeDefinition
     <$  tok "input"
     <*> name
     <*> inputValueDefinitions
+
+inputValueDefinitions :: Parser [InputValueDefinition]
+inputValueDefinitions = braces $ many1 inputValueDefinition
+
+inputValueDefinition :: Parser InputValueDefinition
+inputValueDefinition = InputValueDefinition
+    <$> name
+    <*  tok ":"
+    <*> type_
+    <*> optional defaultValue
 
 typeExtensionDefinition :: Parser TypeExtensionDefinition
 typeExtensionDefinition = TypeExtensionDefinition
