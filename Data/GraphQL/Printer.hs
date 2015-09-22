@@ -52,7 +52,7 @@ selection (SelectionFragmentSpread x) = fragmentSpread x
 
 field :: Field -> Text
 field (Field alias name args ds ss) =
-       optempty (cons ':') alias
+       optempty (`snoc` ':') alias
     <> name
     <> optempty arguments args
     <> optempty directives ds
