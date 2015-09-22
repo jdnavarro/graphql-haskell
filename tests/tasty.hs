@@ -12,7 +12,7 @@ import Test.Tasty (defaultMain)
 import Test.Tasty.HUnit
 
 import qualified Data.GraphQL.Parser as Parser
-import qualified Data.GraphQL.Printer as Printer
+import qualified Data.GraphQL.Encoder as Encoder
 
 import Paths_graphql (getDataFileName)
 
@@ -23,6 +23,6 @@ main = defaultMain =<< testCase "Kitchen Sink"
     expected = Text.readFile
            =<< getDataFileName "tests/data/kitchen-sink.min.graphql"
 
-    actual = either (error "Parsing error!") Printer.document
+    actual = either (error "Parsing error!") Encoder.document
          <$> parseOnly Parser.document
          <$> expected

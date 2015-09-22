@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Data.GraphQL.Printer where
+module Data.GraphQL.Encoder where
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
