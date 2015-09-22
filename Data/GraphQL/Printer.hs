@@ -1,7 +1,11 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Data.GraphQL.Printer where
 
-import Prelude hiding (unwords)
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+import Data.Monoid (Monoid, mconcat, mempty)
+#endif
 import Data.Monoid ((<>))
 
 import Data.Text (Text, cons, intercalate, pack, snoc)

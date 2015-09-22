@@ -10,7 +10,7 @@ import Data.Monoid (Monoid, mempty)
 #endif
 import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
-import Data.Char
+import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
 
 import Data.Text (Text, append)
