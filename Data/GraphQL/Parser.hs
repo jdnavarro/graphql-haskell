@@ -315,13 +315,19 @@ braces :: Parser a -> Parser a
 braces = between "{" "}"
 
 quotes :: Parser a -> Parser a
-quotes = between "\"" "\""
+quotes = between' "\"" "\""
 
 brackets :: Parser a -> Parser a
 brackets = between "[" "]"
 
 between :: Parser Text -> Parser Text -> Parser a -> Parser a
 between open close p = tok open *> p <* tok close
+
+-- | Applies a parser between two given parsers, but does not swallow
+--   whitespace after the opening token. Useful for whitespace-significant
+--   sections, such as string literals.
+between' :: Parser Text -> Parser Text -> Parser a -> Parser a
+between' open close p = open *> p <* tok close
 
 -- `empty` /= `pure mempty` for `Parser`.
 optempty :: Monoid a => Parser a -> Parser a
