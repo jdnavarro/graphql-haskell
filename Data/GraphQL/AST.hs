@@ -1,7 +1,8 @@
 module Data.GraphQL.AST where
 
 import Data.Int (Int32)
-import Data.Text (Text)
+import Data.Text (Text, pack)
+import Data.String
 
 -- * Name
 
@@ -27,6 +28,9 @@ data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
                           deriving (Eq,Show)
 
 newtype Variable = Variable Name deriving (Eq,Show)
+
+instance IsString Variable where
+    fromString = Variable . pack
 
 type SelectionSet = [Selection]
 
