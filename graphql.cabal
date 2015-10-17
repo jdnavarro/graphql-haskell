@@ -24,10 +24,14 @@ library
   ghc-options:         -Wall
   exposed-modules:     Data.GraphQL.AST
                        Data.GraphQL.Encoder
+                       Data.GraphQL.Execute
+                       Data.GraphQL.Schema
                        Data.GraphQL.Parser
   build-depends:       base >=4.7 && < 5,
                        text >=0.11.3.1,
-                       attoparsec >=0.10.4.0
+                       aeson >=0.7.0.3,
+                       attoparsec >=0.10.4.0,
+                       unordered-containers >=0.2.5.0
 
 test-suite tasty
   default-language:    Haskell2010
