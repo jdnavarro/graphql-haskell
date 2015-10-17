@@ -40,6 +40,7 @@ test-suite tasty
   main-is:             tasty.hs
   ghc-options:         -Wall
   other-modules:       Paths_graphql
+                       Test.StarWars
   build-depends:       base >=4.6 && <5,
                        text >=0.11.3.1,
                        attoparsec >=0.10.4.0,

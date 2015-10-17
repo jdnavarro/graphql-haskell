@@ -3,38 +3,29 @@ module Data.GraphQL.Schema where
 import Data.Text (Text)
 import Data.HashMap.Lazy (HashMap)
 
-data Schema = Schema QueryRoot MutationRoot
+data Schema f = Schema (QueryRoot f) (Maybe (MutationRoot f))
 
-type QueryRoot = ObjectOutput
+type QueryRoot f = Object f
 
-type MutationRoot = ObjectOutput
+type MutationRoot f = Object f
 
-type ObjectOutput = HashMap Text Output
+type Object f = HashMap Text (Input -> f Output)
 
 type ObjectInput =  HashMap Text Input
 
-data Type = TypeScalar Scalar
-          | TypeOutputObject ObjectOutput
-          | TypeInterface Interface
-          | TypeUnion Union
-          | TypeEnum Scalar
-          | TypeInputObject ObjectInput
-          | TypeList List
-          | TypeNonNull NonNull
-
 data Output = OutputScalar Scalar
-            | OutputObject ObjectOutput
-            | OutputInterface Interface
-            | OutputUnion Union
+            | OutputObject (HashMap Text Output)
+            | OutputUnion [Output]
             | OutputEnum Scalar
-            | OutputList List
-            | OutputNonNull NonNull
+            | OutputList [Output]
+            | OutputNonNull Output
+            | InputError
 
 data Input = InputScalar Scalar
            | InputObject ObjectInput
            | InputEnum Scalar
-           | InputList List
-           | InputNonNull NonNull
+           | InputList [Output]
+           | InputNonNull Input
 
 data Scalar = ScalarInt Int
             | ScalarFloat Double
@@ -42,10 +33,4 @@ data Scalar = ScalarInt Int
             | ScalarBool Bool
             | ScalarID Text
 
-newtype Interface = Interface (HashMap Text Output)
-
-newtype Union = Union [ObjectOutput]
-
-type List = [Type]
-
-type NonNull = Type
+newtype Interface f = Interface (Object f)
