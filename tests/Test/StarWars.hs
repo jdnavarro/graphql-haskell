@@ -3,9 +3,34 @@
 {-# LANGUAGE RecordWildCards #-}
 module Test.StarWars where
 
+import Data.Functor.Identity (Identity(..))
 import Data.Text (Text)
-import Data.HashMap.Lazy (HashMap)
+
+import Data.Attoparsec.Text (parseOnly)
+import qualified Data.Aeson as Aeson
+
+import Test.Tasty (TestTree)
+import Test.Tasty.HUnit
+
+import Data.GraphQL.AST
+import Data.GraphQL.Execute
+import qualified Data.GraphQL.Parser as Parser
 import Data.GraphQL.Schema
+
+-- * Test
+
+test :: TestTree
+test = testCase "R2-D2" $ execute schema heroQuery @=? Identity expected
+  where
+    heroQuery :: Document
+    heroQuery = either (error "Parsing error") id $ parseOnly Parser.document
+      "{ query HeroNameQuery { hero { name } } }"
+
+    expected :: Response
+    expected = Aeson.Object
+        [ ( "hero" , Aeson.Object [ ("name", "R2-D2") ] ) ]
+
+-- * Schema
 
 type ID = Text
 
@@ -18,22 +43,21 @@ query = [ ("hero", hero)
         , ("droid", droid)
         ]
 
-hero :: Applicative f => Input -> f Output
-hero (InputScalar (ScalarInt ep)) = OutputObject <$> getHeroF ep
-hero _ = pure InputError
+hero :: Applicative f => Resolver f
+hero (InputScalar (ScalarInt ep)) = OutputMap $ getHeroF ep
+hero _ = InputError
 
-human :: Applicative f => Input -> f Output
-human (InputScalar (ScalarString id_)) = OutputScalar . ScalarString <$> getHumanF id_
-human _ = pure InputError
+human :: Applicative f => Resolver f
+human (InputScalar (ScalarString id_)) = OutputScalar $ ScalarString <$> getHumanF id_
+human _ = InputError
 
-droid :: Applicative f => Input -> f Output
-droid (InputScalar (ScalarString id_)) = OutputScalar . ScalarString <$> getDroidF id_
-droid _ = pure InputError
+droid :: Applicative f => Resolver f
+droid (InputScalar (ScalarString id_)) = OutputScalar $ ScalarString <$> getDroidF id_
+droid _ = InputError
 
 -- * Data
 
 -- ** Characters
-
 
 data Character = Character
   { id_ :: ID
@@ -61,25 +85,25 @@ artoo = Character
   , homePlanet = "Astrometch"
   }
 
-type CharacterObject = HashMap Text Output
+type CharacterMap f = Map f
 
-character :: Character -> CharacterObject
+character :: Applicative f => Character -> CharacterMap f
 character (Character{..}) =
-  [ ("id_", OutputScalar $ ScalarID id_)
-  , ("name", OutputScalar $ ScalarString name)
-  , ("friends", OutputList $ OutputScalar . ScalarID <$> friends)
-  , ("appearsIn", OutputList $ OutputScalar . ScalarInt <$> appearsIn)
-  , ("homePlanet", OutputScalar $ ScalarString homePlanet)
+  [ ("id_", const . OutputScalar . pure $ ScalarID id_)
+  , ("name", const . OutputScalar . pure $ ScalarString name)
+  , ("friends", const . OutputList $ OutputScalar . pure . ScalarID <$> friends)
+  , ("appearsIn", const . OutputList $ OutputScalar . pure . ScalarInt <$> appearsIn)
+  , ("homePlanet", const . OutputScalar . pure $ ScalarString homePlanet)
   ]
 
 -- ** Hero
 
-getHero :: Int -> CharacterObject
-getHero 5 = character luke
-getHero _ = character artoo
+getHero :: Int -> Character
+getHero 5 = luke
+getHero _ = artoo
 
-getHeroF :: Applicative f => Int -> f CharacterObject
-getHeroF = pure . getHero
+getHeroF :: Applicative f => Int -> CharacterMap f
+getHeroF = character . getHero
 
 -- ** Human
 

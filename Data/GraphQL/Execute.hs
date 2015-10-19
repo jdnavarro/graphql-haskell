@@ -10,5 +10,7 @@ import qualified Data.Aeson as Aeson (Value)
 import Data.GraphQL.AST
 import Data.GraphQL.Schema
 
-execute :: Applicative f => Schema -> Document -> f Aeson.Value
-execute = undefined
+type Response = Aeson.Value
+
+execute :: Applicative f => Schema f -> Document -> f Response
+execute _schema _doc = undefined

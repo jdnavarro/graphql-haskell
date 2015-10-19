@@ -5,26 +5,25 @@ import Data.HashMap.Lazy (HashMap)
 
 data Schema f = Schema (QueryRoot f) (Maybe (MutationRoot f))
 
-type QueryRoot f = Object f
+type QueryRoot f = Map f
 
-type MutationRoot f = Object f
+type MutationRoot f = Map f
 
-type Object f = HashMap Text (Input -> f Output)
+type Map f = HashMap Text (Resolver f)
 
-type ObjectInput =  HashMap Text Input
+type Resolver f = Input -> Output f
 
-data Output = OutputScalar Scalar
-            | OutputObject (HashMap Text Output)
-            | OutputUnion [Output]
-            | OutputEnum Scalar
-            | OutputList [Output]
-            | OutputNonNull Output
-            | InputError
+data Output f = OutputScalar (f Scalar)
+              | OutputMap (Map f)
+              | OutputUnion [Map f]
+              | OutputEnum (f Scalar)
+              | OutputList [Output f]
+              | OutputNonNull (Output f)
+              | InputError
 
 data Input = InputScalar Scalar
-           | InputObject ObjectInput
            | InputEnum Scalar
-           | InputList [Output]
+           | InputList [Input]
            | InputNonNull Input
 
 data Scalar = ScalarInt Int
@@ -32,5 +31,3 @@ data Scalar = ScalarInt Int
             | ScalarString Text
             | ScalarBool Bool
             | ScalarID Text
-
-newtype Interface f = Interface (Object f)

@@ -42,6 +42,7 @@ test-suite tasty
   other-modules:       Paths_graphql
                        Test.StarWars
   build-depends:       base >=4.6 && <5,
+                       aeson >=0.7.0.3,
                        text >=0.11.3.1,
                        attoparsec >=0.10.4.0,
                        tasty >=0.10,
