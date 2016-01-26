@@ -1,8 +1,8 @@
 module Data.GraphQL.AST where
 
 import Data.Int (Int32)
+import Data.String (IsString(fromString))
 import Data.Text (Text, pack)
-import Data.String
 
 -- * Name
 
@@ -39,9 +39,7 @@ data Selection = SelectionField Field
                | SelectionInlineFragment InlineFragment
                  deriving (Eq,Show)
 
-data Field = Field Alias Name [Argument]
-                              [Directive]
-                              SelectionSet
+data Field = Field Alias Name [Argument] [Directive] SelectionSet
              deriving (Eq,Show)
 
 type Alias = Name

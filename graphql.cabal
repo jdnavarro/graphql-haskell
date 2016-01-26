@@ -14,7 +14,7 @@ copyright:           Copyright (C) 2015 J. Daniel Navarro
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.8.4, GHC == 7.10.2
+tested-with:         GHC == 7.8.4, GHC == 7.10.3
 extra-source-files:  README.md CHANGELOG.md stack.yaml
 data-files:          tests/data/*.graphql
                      tests/data/*.min.graphql

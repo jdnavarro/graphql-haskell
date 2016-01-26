@@ -6,6 +6,8 @@ import Text.Show.Functions ()
 import Data.Text (Text)
 import Data.Aeson (ToJSON(toJSON))
 
+-- TODO: Support side-effects
+
 data Schema = Schema QueryRoot -- (Maybe  MutationRoot)
 
 type QueryRoot = Resolver

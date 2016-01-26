@@ -28,6 +28,6 @@ ksTest = testCase "Kitchen Sink"
            =<< getDataFileName "tests/data/kitchen-sink.min.graphql"
 
     actual = either (error "Parsing error!") Encoder.document
-         <$> parseOnly Parser.document
+          .  parseOnly Parser.document
          <$> expected
 
