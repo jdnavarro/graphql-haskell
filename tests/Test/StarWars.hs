@@ -1,13 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE RecordWildCards #-}
 module Test.StarWars where
 
-import Data.Functor.Identity (Identity(..))
+import Control.Applicative ((<|>), liftA2)
+import Data.Maybe (catMaybes)
+-- import Data.Functor.Identity (Identity(..))
 import Data.Text (Text)
 
-import Data.Attoparsec.Text (parseOnly)
+-- import Data.Aeson (ToJSON(toJSON), genericToJSON, defaultOptions)
 import qualified Data.Aeson as Aeson
+import Data.Attoparsec.Text (parseOnly)
 
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit
@@ -17,119 +19,106 @@ import Data.GraphQL.Execute
 import qualified Data.GraphQL.Parser as Parser
 import Data.GraphQL.Schema
 
+
 -- * Test
+-- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
 test :: TestTree
-test = testCase "R2-D2" $ execute schema heroQuery @=? Identity expected
+test = testCase "R2-D2" $ execute schema heroQuery @?= expected
   where
     heroQuery :: Document
     heroQuery = either (error "Parsing error") id $ parseOnly Parser.document
-      "{ query HeroNameQuery { hero { name } } }"
+      "query HeroNameQuery{hero{name}}"
 
-    expected :: Response
-    expected = Aeson.Object
-        [ ( "hero" , Aeson.Object [ ("name", "R2-D2") ] ) ]
+    expected :: Maybe Response
+    expected = Just $ Aeson.Object [("hero", Aeson.Object [("name", "R2-D2")])]
 
 -- * Schema
+-- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsSchema.js
 
 type ID = Text
 
-schema :: Applicative f => Schema f
-schema = Schema query Nothing
+schema :: Schema
+schema = Schema query
 
-query :: Applicative f => QueryRoot f
-query = [ ("hero", hero)
-        , ("human", human)
-        , ("droid", droid)
-        ]
+query ::  QueryRoot
+query (InputField "hero")  = OutputResolver hero
+query (InputField "human") = OutputResolver human
+query (InputField "droid") = OutputResolver droid
+query _ = OutputError
 
-hero :: Applicative f => Resolver f
-hero (InputScalar (ScalarInt ep)) = OutputMap $ getHeroF ep
-hero _ = InputError
+hero :: Resolver
+hero (InputList (InputScalar (ScalarInt ep) : inputFields)) =
+    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getHero ep
+hero (InputField fld) = characterOutput fld artoo
+hero _ = OutputError
 
-human :: Applicative f => Resolver f
-human (InputScalar (ScalarString id_)) = OutputScalar $ ScalarString <$> getHumanF id_
-human _ = InputError
+human :: Resolver
+human (InputList (InputScalar (ScalarID i) : inputFields)) =
+    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getHuman i
+human _ = OutputError
 
-droid :: Applicative f => Resolver f
-droid (InputScalar (ScalarString id_)) = OutputScalar $ ScalarString <$> getDroidF id_
-droid _ = InputError
+droid :: Resolver
+droid (InputList (InputScalar (ScalarID i) : inputFields)) =
+    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getDroid i
+droid _ = OutputError
+
+characterOutput :: Text -> Character -> Output
+characterOutput "id"      char = OutputScalar . ScalarString $ id_  char
+characterOutput "name"    char = OutputScalar . ScalarString $ name char
+characterOutput "friends" char = OutputList $ OutputResolver . (\c (InputField f) -> characterOutput f c) <$> getFriends char
+characterOutput _ _ = OutputError
 
 -- * Data
+-- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsData.js
 
 -- ** Characters
 
 data Character = Character
-  { id_ :: ID
-  , name :: Text
-  , friends :: [ID]
-  , appearsIn :: [Int]
+  { id_        :: ID
+  , name       :: Text
+  , friends    :: [ID]
+  , appearsIn  :: [Int]
   , homePlanet :: Text
-  }
+  } deriving (Show)
 
 luke :: Character
 luke = Character
-  { id_ = "1000"
-  , name = "Luke Skywalker"
-  , friends = ["1002","1003","2000","2001"]
-  , appearsIn = [4,5,6]
+  { id_        = "1000"
+  , name       = "Luke Skywalker"
+  , friends    = ["1002","1003","2000","2001"]
+  , appearsIn  = [4,5,6]
   , homePlanet = "Tatoonie"
   }
 
 artoo :: Character
 artoo = Character
-  { id_ = "2001"
-  , name = "R2-D2"
-  , friends = ["1000","1002","1003"]
-  , appearsIn = [4,5,6]
+  { id_        = "2001"
+  , name       = "R2-D2"
+  , friends    = ["1000","1002","1003"]
+  , appearsIn  = [4,5,6]
   , homePlanet = "Astrometch"
   }
 
-type CharacterMap f = Map f
+-- ** Helper functions
 
-character :: Applicative f => Character -> CharacterMap f
-character (Character{..}) =
-  [ ("id_", const . OutputScalar . pure $ ScalarID id_)
-  , ("name", const . OutputScalar . pure $ ScalarString name)
-  , ("friends", const . OutputList $ OutputScalar . pure . ScalarID <$> friends)
-  , ("appearsIn", const . OutputList $ OutputScalar . pure . ScalarInt <$> appearsIn)
-  , ("homePlanet", const . OutputScalar . pure $ ScalarString homePlanet)
-  ]
+getHero :: Int -> Maybe Character
+getHero 5 = Just luke
+getHero _ = Just artoo
 
--- ** Hero
+getHuman :: ID -> Maybe Character
+getHuman "1000" = Just luke
+-- getHuman "1001" = "vader"
+-- getHuman "1002" = "han"
+-- getHuman "1003" = "leia"
+-- getHuman "1004" = "tarkin"
+getHuman _      = Nothing
 
-getHero :: Int -> Character
-getHero 5 = luke
-getHero _ = artoo
+getDroid :: ID -> Maybe Character
+-- getDroid "2000" = "threepio"
+getDroid "2001" = Just artoo
+getDroid _ = Nothing
 
-getHeroF :: Applicative f => Int -> CharacterMap f
-getHeroF = character . getHero
 
--- ** Human
-
-getHuman :: ID -> Text
-getHuman "1000" = "luke"
-getHuman "1001" = "vader"
-getHuman "1002" = "han"
-getHuman "1003" = "leia"
-getHuman "1004" = "tarkin"
-getHuman _      = ""
-
-getHumanF :: Applicative f => ID -> f Text
-getHumanF = pure . getHuman
-
-getHumanIO :: ID -> IO Text
-getHumanIO = getHumanF
-
--- ** Droid
-
-getDroid :: ID -> Text
-getDroid "2000" = "threepio"
-getDroid "2001" = "artoo"
-getDroid _ = ""
-
-getDroidF :: Applicative f => ID -> f Text
-getDroidF = pure . getDroid
-
-getDroidIO :: ID -> IO Text
-getDroidIO = getDroidF
+getFriends :: Character -> [Character]
+getFriends char = catMaybes $ liftA2 (<|>) getDroid getHuman <$> friends char

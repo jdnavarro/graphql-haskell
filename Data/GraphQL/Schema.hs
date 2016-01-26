@@ -1,33 +1,48 @@
 module Data.GraphQL.Schema where
 
+import Data.Maybe (catMaybes)
+import Text.Show.Functions ()
+
 import Data.Text (Text)
-import Data.HashMap.Lazy (HashMap)
+import Data.Aeson (ToJSON(toJSON))
 
-data Schema f = Schema (QueryRoot f) (Maybe (MutationRoot f))
+data Schema = Schema QueryRoot -- (Maybe  MutationRoot)
 
-type QueryRoot f = Map f
+type QueryRoot = Resolver
 
-type MutationRoot f = Map f
+type Resolver = Input -> Output
 
-type Map f = HashMap Text (Resolver f)
-
-type Resolver f = Input -> Output f
-
-data Output f = OutputScalar (f Scalar)
-              | OutputMap (Map f)
-              | OutputUnion [Map f]
-              | OutputEnum (f Scalar)
-              | OutputList [Output f]
-              | OutputNonNull (Output f)
-              | InputError
+data Output = OutputResolver Resolver
+            | OutputList [Output]
+            | OutputScalar Scalar
+         -- | OutputUnion [Output]
+         -- | OutputEnum [Scalar]
+         -- | OutputNonNull (Output)
+            | OutputError
+              deriving (Show)
 
 data Input = InputScalar Scalar
-           | InputEnum Scalar
+           | InputField Text
            | InputList [Input]
-           | InputNonNull Input
+             deriving (Show)
 
-data Scalar = ScalarInt Int
-            | ScalarFloat Double
-            | ScalarString Text
-            | ScalarBool Bool
-            | ScalarID Text
+field :: Input -> Maybe Text
+field (InputField x) = Just x
+field _ = Nothing
+
+fields :: [Input] -> [Text]
+fields = catMaybes . fmap field
+
+data Scalar = ScalarInt     Int
+            | ScalarFloat   Double
+            | ScalarString  Text
+            | ScalarBoolean Bool
+            | ScalarID      Text
+              deriving (Show)
+
+instance ToJSON Scalar where
+    toJSON (ScalarInt     x) = toJSON x
+    toJSON (ScalarFloat   x) = toJSON x
+    toJSON (ScalarString  x) = toJSON x
+    toJSON (ScalarBoolean x) = toJSON x
+    toJSON (ScalarID      x) = toJSON x
