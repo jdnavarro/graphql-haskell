@@ -1,13 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Test.StarWars where
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+#endif
 import Control.Applicative ((<|>), liftA2)
 import Data.Maybe (catMaybes)
--- import Data.Functor.Identity (Identity(..))
 import Data.Text (Text)
 
--- import Data.Aeson (ToJSON(toJSON), genericToJSON, defaultOptions)
 import qualified Data.Aeson as Aeson
 import Data.Attoparsec.Text (parseOnly)
 
@@ -46,6 +48,8 @@ query (InputField "hero")  = OutputResolver hero
 query (InputField "human") = OutputResolver human
 query (InputField "droid") = OutputResolver droid
 query _ = OutputError
+
+-- TODO: Extract helper function from next 3 functions.
 
 hero :: Resolver
 hero (InputList (InputScalar (ScalarInt ep) : inputFields)) =
