@@ -3,7 +3,7 @@
 module Data.GraphQL.Execute where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>), Applicative)
+import Control.Applicative ((<$>))
 #endif
 
 import qualified Data.Aeson as Aeson
