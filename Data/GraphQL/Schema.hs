@@ -1,27 +1,22 @@
 module Data.GraphQL.Schema where
 
 import Data.Maybe (catMaybes)
-import Text.Show.Functions ()
 
 import Data.Text (Text)
 import Data.Aeson (ToJSON(toJSON))
 
--- TODO: Support side-effects
+data Schema f = Schema (QueryRoot f) -- (Maybe  MutationRoot)
 
-data Schema = Schema QueryRoot -- (Maybe  MutationRoot)
+type QueryRoot f = Resolver f
 
-type QueryRoot = Resolver
+type Resolver f = Input -> f (Output f)
 
-type Resolver = Input -> Output
-
-data Output = OutputResolver Resolver
-            | OutputList [Output]
-            | OutputScalar Scalar
-         -- | OutputUnion [Output]
-         -- | OutputEnum [Scalar]
-         -- | OutputNonNull (Output)
-            | OutputError
-              deriving (Show)
+data Output f = OutputResolver (Resolver f)
+              | OutputList (f [Output f])
+              | OutputScalar (f Scalar)
+           -- | OutputUnion [Output]
+           -- | OutputEnum [Scalar]
+           -- | OutputNonNull (Output)
 
 data Input = InputScalar Scalar
            | InputField Text

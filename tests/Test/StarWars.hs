@@ -4,14 +4,15 @@
 module Test.StarWars where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>))
+import Control.Applicative (Applicative, (<$>), pure)
+import Data.Traversable (traverse)
 #endif
-import Control.Applicative ((<|>), liftA2)
+import Control.Applicative (Alternative, (<|>), empty, liftA2)
 import Data.Maybe (catMaybes)
-import Data.Text (Text)
 
 import qualified Data.Aeson as Aeson
 import Data.Attoparsec.Text (parseOnly)
+import Data.Text (Text)
 
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit
@@ -40,38 +41,45 @@ test = testCase "R2-D2" $ execute schema heroQuery @?= expected
 
 type ID = Text
 
-schema :: Schema
+schema :: Alternative f => Schema f
 schema = Schema query
 
-query ::  QueryRoot
-query (InputField "hero")  = OutputResolver hero
-query (InputField "human") = OutputResolver human
-query (InputField "droid") = OutputResolver droid
-query _ = OutputError
+query :: Alternative f => QueryRoot f
+query (InputField "hero")  = pure $ OutputResolver hero
+query (InputField "human") = pure $ OutputResolver human
+query (InputField "droid") = pure $ OutputResolver droid
+query _ = empty
 
--- TODO: Extract helper function from next 3 functions.
-
-hero :: Resolver
+hero :: Alternative f => Resolver f
 hero (InputList (InputScalar (ScalarInt ep) : inputFields)) =
-    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getHero ep
+    withFields inputFields  <$> getHero ep
 hero (InputField fld) = characterOutput fld artoo
-hero _ = OutputError
+hero _ = empty
 
-human :: Resolver
+human :: Alternative f => Resolver f
 human (InputList (InputScalar (ScalarID i) : inputFields)) =
-    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getHuman i
-human _ = OutputError
+    withFields inputFields <$> getHuman i
+human _ = empty
 
-droid :: Resolver
+droid :: Alternative f => Resolver f
 droid (InputList (InputScalar (ScalarID i) : inputFields)) =
-    maybe OutputError (\char -> OutputList $ (`characterOutput` char) <$> fields inputFields) $ getDroid i
-droid _ = OutputError
+    withFields inputFields <$> getDroid i
+droid _ = empty
 
-characterOutput :: Text -> Character -> Output
-characterOutput "id"      char = OutputScalar . ScalarString $ id_  char
-characterOutput "name"    char = OutputScalar . ScalarString $ name char
-characterOutput "friends" char = OutputList $ OutputResolver . (\c (InputField f) -> characterOutput f c) <$> getFriends char
-characterOutput _ _ = OutputError
+characterOutput :: Alternative f => Text -> Character -> f (Output f)
+characterOutput "id" char =
+    pure $ OutputScalar . pure . ScalarString $ id_  char
+characterOutput "name" char =
+    pure $ OutputScalar . pure . ScalarString $ name char
+characterOutput "friends" char =
+    -- TODO: Cleanup
+    pure . OutputList . pure $ OutputResolver . (\c (InputField f) ->
+      characterOutput f c) <$> getFriends char
+characterOutput _ _ = empty
+
+withFields :: Alternative f => [Input] -> Character -> Output f
+withFields inputFields char =
+    OutputList . traverse (`characterOutput` char) $ fields inputFields
 
 -- * Data
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsData.js
@@ -106,23 +114,25 @@ artoo = Character
 
 -- ** Helper functions
 
-getHero :: Int -> Maybe Character
-getHero 5 = Just luke
-getHero _ = Just artoo
+getHero :: Applicative f => Int -> f Character
+getHero 5 = pure luke
+getHero _ = pure artoo
 
-getHuman :: ID -> Maybe Character
-getHuman "1000" = Just luke
+getHeroIO :: Int -> IO Character
+getHeroIO = getHero
+
+getHuman :: Alternative f => ID -> f Character
+getHuman "1000" = pure luke
 -- getHuman "1001" = "vader"
 -- getHuman "1002" = "han"
 -- getHuman "1003" = "leia"
 -- getHuman "1004" = "tarkin"
-getHuman _      = Nothing
+getHuman _      = empty
 
-getDroid :: ID -> Maybe Character
+getDroid :: Alternative f => ID -> f Character
 -- getDroid "2000" = "threepio"
-getDroid "2001" = Just artoo
-getDroid _ = Nothing
-
+getDroid "2001" = pure artoo
+getDroid _ = empty
 
 getFriends :: Character -> [Character]
 getFriends char = catMaybes $ liftA2 (<|>) getDroid getHuman <$> friends char
