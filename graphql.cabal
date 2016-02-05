@@ -22,7 +22,8 @@ data-files:          tests/data/*.graphql
 library
   default-language:    Haskell2010
   ghc-options:         -Wall
-  exposed-modules:     Data.GraphQL.AST
+  exposed-modules:     Data.GraphQL
+                       Data.GraphQL.AST
                        Data.GraphQL.Encoder
                        Data.GraphQL.Execute
                        Data.GraphQL.Schema

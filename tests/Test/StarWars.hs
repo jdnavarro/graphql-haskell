@@ -11,30 +11,23 @@ import Control.Applicative (Alternative, (<|>), empty, liftA2)
 import Data.Maybe (catMaybes)
 
 import qualified Data.Aeson as Aeson
-import Data.Attoparsec.Text (parseOnly)
 import Data.Text (Text)
 
-import Test.Tasty (TestTree)
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@?=))
 
-import Data.GraphQL.AST
-import Data.GraphQL.Execute
-import qualified Data.GraphQL.Parser as Parser
+import Data.GraphQL
 import Data.GraphQL.Schema
-
 
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
 test :: TestTree
-test = testCase "R2-D2" $ execute schema heroQuery @?= expected
-  where
-    heroQuery :: Document
-    heroQuery = either (error "Parsing error") id $ parseOnly Parser.document
-      "query HeroNameQuery{hero{name}}"
-
-    expected :: Maybe Response
-    expected = Just $ Aeson.Object [("hero", Aeson.Object [("name", "R2-D2")])]
+test = testGroup "Basic Queries"
+     [testCase "R2-D2"
+         $  graphql schema "query HeroNameQuery{hero{name}}"
+        @?= Just (Aeson.Object [("hero", Aeson.Object [("name", "R2-D2")])])
+     ]
 
 -- * Schema
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsSchema.js
