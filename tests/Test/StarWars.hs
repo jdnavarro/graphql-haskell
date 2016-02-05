@@ -10,7 +10,7 @@ import Data.Traversable (traverse)
 import Control.Applicative (Alternative, (<|>), empty, liftA2)
 import Data.Maybe (catMaybes)
 
-import qualified Data.Aeson as Aeson
+import Data.Aeson (object, (.=))
 import Data.Text (Text)
 
 import Test.Tasty (TestTree, testGroup)
@@ -26,7 +26,7 @@ test :: TestTree
 test = testGroup "Basic Queries"
      [testCase "R2-D2"
          $  graphql schema "query HeroNameQuery{hero{name}}"
-        @?= Just (Aeson.Object [("hero", Aeson.Object [("name", "R2-D2")])])
+        @?= Just (object ["hero" .= object ["name" .= ("R2-D2" :: Text)]])
      ]
 
 -- * Schema
