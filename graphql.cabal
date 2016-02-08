@@ -10,7 +10,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Danny Navarro
 maintainer:          j@dannynavarro.net
-copyright:           Copyright (C) 2015 J. Daniel Navarro
+copyright:           Copyright (C) 2015-2016 J. Daniel Navarro
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
