@@ -131,7 +131,7 @@ query _ = empty
 hero :: Alternative f => Resolver f
 hero (InputList (InputScalar (ScalarInt ep) : inputFields)) =
     withFields inputFields <$> getHero ep
-hero (InputField fld) = characterOutput fld artoo
+hero (InputField fld) = characterOutput fld $ Left artoo
 hero _ = empty
 
 human :: Alternative f => Resolver f
@@ -171,98 +171,149 @@ withFields inputFields char =
 
 -- ** Characters
 
-data Character = Character
-  { id_        :: ID
-  , name       :: Text
-  , friends    :: [ID]
-  , appearsIn  :: [Int]
-  , homePlanet :: Text
+data CharCommon = CharCommon
+  { _id_        :: ID
+  , _name       :: Text
+  , _friends    :: [ID]
+  , _appearsIn  :: [Int]
   } deriving (Show)
 
-luke :: Character
-luke = Character
-  { id_        = "1000"
-  , name       = "Luke Skywalker"
-  , friends    = ["1002","1003","2000","2001"]
-  , appearsIn  = [4,5,6]
+
+data Human = Human
+  { _humanChar  :: CharCommon
+  , homePlanet :: Text
+  }
+
+data Droid = Droid
+  { _droidChar       :: CharCommon
+  , primaryFunction :: Text
+  }
+
+type Character = Either Droid Human
+
+-- I don't think this is cumbersome enough to make it worth using lens.
+
+id_ :: Character -> ID
+id_ (Left  x) = _id_ . _droidChar $ x
+id_ (Right x) = _id_ . _humanChar $ x
+
+name :: Character -> Text
+name (Left  x) = _name . _droidChar $ x
+name (Right x) = _name . _humanChar $ x
+
+friends :: Character -> [ID]
+friends (Left  x) = _friends . _droidChar $ x
+friends (Right x) = _friends . _humanChar $ x
+
+appearsIn :: Character -> [Int]
+appearsIn (Left  x) = _appearsIn . _droidChar $ x
+appearsIn (Right x) = _appearsIn . _humanChar $ x
+
+luke :: Human
+luke = Human
+  { _humanChar = CharCommon
+      { _id_        = "1000"
+      , _name       = "Luke Skywalker"
+      , _friends    = ["1002","1003","2000","2001"]
+      , _appearsIn  = [4,5,6]
+      }
   , homePlanet = "Tatoonie"
   }
 
-vader :: Character
-vader = Character
-  { id_        = "1001"
-  , name       = "Darth Vader"
-  , friends    = ["1004"]
-  , appearsIn  = [4,5,6]
+vader :: Human
+vader = Human
+  { _humanChar = CharCommon
+      { _id_        = "1001"
+      , _name       = "Darth Vader"
+      , _friends    = ["1004"]
+      , _appearsIn  = [4,5,6]
+      }
   , homePlanet = "Tatooine"
   }
 
-han :: Character
-han = Character
-  { id_        = "1002"
-  , name       = "Han Solo"
-  , friends    = ["1000","1003","2001" ]
-  , appearsIn  = [4,5,6]
+han :: Human
+han = Human
+  { _humanChar = CharCommon
+      { _id_        = "1002"
+      , _name       = "Han Solo"
+      , _friends    = ["1000","1003","2001" ]
+      , _appearsIn  = [4,5,6]
+      }
   , homePlanet = mempty
   }
 
-leia :: Character
-leia = Character
-  { id_        = "1003"
-  , name       = "Leia Organa"
-  , friends    = ["1000","1002","2000","2001"]
-  , appearsIn  = [4,5,6]
+leia :: Human
+leia = Human
+  { _humanChar = CharCommon
+      { _id_        = "1003"
+      , _name       = "Leia Organa"
+      , _friends    = ["1000","1002","2000","2001"]
+      , _appearsIn  = [4,5,6]
+      }
   , homePlanet = "Alderaan"
   }
 
-tarkin :: Character
-tarkin = Character
-  { id_        = "1004"
-  , name       = "Wilhuff Tarkin"
-  , friends    = ["1001"]
-  , appearsIn  = [4]
+tarkin :: Human
+tarkin = Human
+  { _humanChar = CharCommon
+    { _id_        = "1004"
+    , _name       = "Wilhuff Tarkin"
+    , _friends    = ["1001"]
+    , _appearsIn  = [4]
+    }
   , homePlanet = mempty
   }
 
-threepio :: Character
-threepio = Character
-  { id_ = "2000"
-  , name = "C-3PO"
-  , friends = ["1000","1002","1003","2001" ]
-  , appearsIn = [ 4, 5, 6 ]
-  , homePlanet = "Protocol"
+threepio :: Droid
+threepio = Droid
+  { _droidChar = CharCommon
+      { _id_ = "2000"
+      , _name = "C-3PO"
+      , _friends = ["1000","1002","1003","2001" ]
+      , _appearsIn = [ 4, 5, 6 ]
+      }
+  , primaryFunction = "Protocol"
   }
 
-artoo :: Character
-artoo = Character
-  { id_        = "2001"
-  , name       = "R2-D2"
-  , friends    = ["1000","1002","1003"]
-  , appearsIn  = [4,5,6]
-  , homePlanet = "Astrometch"
+artoo :: Droid
+artoo = Droid
+  { _droidChar = CharCommon
+      { _id_        = "2001"
+      , _name       = "R2-D2"
+      , _friends    = ["1000","1002","1003"]
+      , _appearsIn  = [4,5,6]
+      }
+  , primaryFunction = "Astrometch"
   }
 
 -- ** Helper functions
 
 getHero :: Applicative f => Int -> f Character
-getHero 5 = pure luke
-getHero _ = pure artoo
+getHero 5 = pure $ Right luke
+getHero _ = pure $ Left artoo
 
 getHeroIO :: Int -> IO Character
 getHeroIO = getHero
 
+
 getHuman :: Alternative f => ID -> f Character
-getHuman "1000" = pure luke
-getHuman "1001" = pure vader
-getHuman "1002" = pure han
-getHuman "1003" = pure leia
-getHuman "1004" = pure tarkin
-getHuman _      = empty
+getHuman = fmap Right . getHuman'
+
+getHuman' :: Alternative f => ID -> f Human
+getHuman' "1000" = pure luke
+getHuman' "1001" = pure vader
+getHuman' "1002" = pure han
+getHuman' "1003" = pure leia
+getHuman' "1004" = pure tarkin
+getHuman' _      = empty
 
 getDroid :: Alternative f => ID -> f Character
-getDroid "2000" = pure threepio
-getDroid "2001" = pure artoo
-getDroid _      = empty
+getDroid = fmap Left . getDroid'
+
+getDroid' :: Alternative f => ID -> f Droid
+getDroid' "2000" = pure threepio
+getDroid' "2001" = pure artoo
+getDroid' _      = empty
 
 getFriends :: Character -> [Character]
 getFriends char = catMaybes $ liftA2 (<|>) getDroid getHuman <$> friends char
