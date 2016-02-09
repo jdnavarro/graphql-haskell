@@ -25,40 +25,93 @@ import Data.GraphQL.Schema
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
 test :: TestTree
-test = testGroup "Basic Queries"
-  [ testCase "R2-D2 hero" $ (@?=) (graphql schema [r|
-query HeroNameQuery {
-  hero {
-    id
-  }
-}|]) . Just
-     $ object [
-         "hero" .= object [
-              "id"   .= ("2001" :: Text)
-            ]
-         ]
-
-  , testCase "R2-D2 ID and friends" $ (@?=) (graphql schema [r|
-query HeroNameAndFriendsQuery {
-  hero {
-    id
-    name
-    friends {
-      name
+test = testGroup "Star Wars Query Tests"
+  [ testGroup "Basic Queries"
+    [ testCase "R2-D2 hero" $ (@?=) (graphql schema [r|
+  query HeroNameQuery {
+    hero {
+      id
     }
-  }
-}|]) . Just
-     $ object [
+  }|]) . Just
+      $ object [
           "hero" .= object [
-               "id" .= ("2001" :: Text)
-             , "name" .= ("R2-D2" :: Text)
-             , "friends" .= [
-                    object ["name" .= ("Luke Skywalker" :: Text)]
-                  , object ["name" .= ("Han Solo" :: Text)]
-                  , object ["name" .= ("Leia Organa" :: Text)]
-                  ]
-             ]
+                "id"   .= ("2001" :: Text)
+              ]
+          ]
+
+    , testCase "R2-D2 ID and friends" $ (@?=) (graphql schema [r|
+  query HeroNameAndFriendsQuery {
+    hero {
+      id
+      name
+      friends {
+        name
+      }
+    }
+  }|]) . Just
+       $ object [
+            "hero" .= object [
+                "id" .= ("2001" :: Text)
+              , "name" .= ("R2-D2" :: Text)
+              , "friends" .= [
+                      object ["name" .= ("Luke Skywalker" :: Text)]
+                    , object ["name" .= ("Han Solo" :: Text)]
+                    , object ["name" .= ("Leia Organa" :: Text)]
+                    ]
+              ]
+       ]
+    ]
+  , testGroup "Nested Queries"
+    [ testCase "R2-D2 friends" $ (@?=) (graphql schema [r|
+  query NestedQuery {
+    hero {
+      name
+      friends {
+        name
+        appearsIn
+        friends {
+          name
+        }
+      }
+    }
+  }|]) . Just
+       $ object [
+           "hero" .= object [
+                "name" .= ("R2-D2" :: Text)
+              , "friends" .= [
+                     object [
+                         "name" .= ("Luke Skywalker" :: Text)
+                       , "appearsIn" .= ["NEWHOPE","EMPIRE","JEDI" :: Text]
+                       , "friends" .= [
+                             object ["name" .= ("Han Solo" :: Text)]
+                           , object ["name" .= ("Leia Organa" :: Text)]
+                           , object ["name" .= ("C-3PO" :: Text)]
+                           , object ["name" .= ("R2-D2" :: Text)]
+                           ]
+                       ]
+                   , object [
+                         "name" .= ("Han Solo" :: Text)
+                       , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
+                       , "friends" .= [
+                             object ["name" .= ("Luke Skywalker" :: Text)]
+                           , object ["name" .= ("Leia Organa" :: Text)]
+                           , object ["name" .= ("R2-D2" :: Text)]
+                           ]
+                       ]
+                   , object [
+                         "name" .= ("Leia Organa" :: Text)
+                       , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
+                       , "friends" .= [
+                             object ["name" .= ("Luke Skywalker" :: Text)]
+                           , object ["name" .= ("Han Solo" :: Text)]
+                           , object ["name" .= ("C-3PO" :: Text)]
+                           , object ["name" .= ("R2-D2" :: Text)]
+                           ]
+                       ]
+                   ]
+               ]
            ]
+      ]
   ]
 
 -- * Schema
@@ -91,6 +144,12 @@ droid (InputList (InputScalar (ScalarID i) : inputFields)) =
     withFields inputFields <$> getDroid i
 droid _ = empty
 
+episode :: Alternative f => Int -> Output f
+episode 4 = OutputEnum $ pure "NEWHOPE"
+episode 5 = OutputEnum $ pure "EMPIRE"
+episode 6 = OutputEnum $ pure "JEDI"
+episode _ = OutputEnum empty
+
 characterOutput :: Alternative f => Text -> Character -> f (Output f)
 characterOutput "id" char =
     pure $ OutputScalar . pure . ScalarString $ id_  char
@@ -99,6 +158,8 @@ characterOutput "name" char =
 characterOutput "friends" char =
     pure . OutputList . pure $ OutputResolver . (\c (InputField f) ->
       characterOutput f c) <$> getFriends char
+characterOutput "appearsIn" char =
+    pure $ OutputList . pure . fmap episode $ appearsIn char
 characterOutput _ _ = empty
 
 withFields :: Alternative f => [Input] -> Character -> Output f

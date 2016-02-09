@@ -33,6 +33,9 @@ selection _ _ = error "selection: Not implemented yet"
 output :: (Alternative f, Monad f) => SelectionSet -> Output f -> f Aeson.Value
 output sels (OutputResolver resolv) = selectionSet resolv sels
 output sels (OutputList os) = fmap array . traverse (output sels) =<< os
+output sels (OutputEnum e)
+   | null sels = Aeson.toJSON <$> e
+   | otherwise = empty
 output sels (OutputScalar s)
    | null sels = Aeson.toJSON <$> s
    | otherwise = empty

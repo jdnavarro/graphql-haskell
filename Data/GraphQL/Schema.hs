@@ -14,8 +14,8 @@ type Resolver f = Input -> f (Output f)
 data Output f = OutputResolver (Resolver f)
               | OutputList (f [Output f])
               | OutputScalar (f Scalar)
+              | OutputEnum (f Text)
            -- | OutputUnion [Output]
-           -- | OutputEnum [Scalar]
            -- | OutputNonNull (Output)
 
 data Input = InputScalar Scalar
