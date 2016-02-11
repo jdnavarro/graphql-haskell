@@ -1,35 +1,34 @@
+{-# LANGUAGE CPP #-}
 module Data.GraphQL.Schema where
 
-import Data.Maybe (catMaybes)
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+#endif
 
-import Data.Text (Text)
 import Data.Aeson (ToJSON(toJSON))
+import Data.HashMap.Strict (HashMap)
+import Data.Text (Text)
 
 data Schema f = Schema (QueryRoot f) -- (Maybe  MutationRoot)
 
 type QueryRoot f = Resolver f
 
-type Resolver f = Input -> f (Output f)
+type Resolver f = Input -> f Output
 
-data Output f = OutputResolver (Resolver f)
-              | OutputList (f [Output f])
-              | OutputScalar (f Scalar)
-              | OutputEnum (f Text)
+data Output = OutputObject (HashMap Text Output)
+            | OutputList [Output]
+            | OutputScalar Scalar
+            | OutputEnum Text
+              deriving (Show)
            -- | OutputUnion [Output]
            -- | OutputNonNull (Output)
 
-data Input = InputScalar Scalar
-           | InputField Text
-           | InputList [Input]
+type Argument = (Text, Scalar)
+
+data Input = InputField Text [Argument] [Input]
              deriving (Show)
 
-field :: Input -> Maybe Text
-field (InputField x) = Just x
-field _ = Nothing
-
-fields :: [Input] -> [Text]
-fields = catMaybes . fmap field
-
+-- TODO: Make ScalarInt Int32
 data Scalar = ScalarInt     Int
             | ScalarFloat   Double
             | ScalarString  Text
@@ -43,3 +42,10 @@ instance ToJSON Scalar where
     toJSON (ScalarString  x) = toJSON x
     toJSON (ScalarBoolean x) = toJSON x
     toJSON (ScalarID      x) = toJSON x
+
+instance ToJSON Output where
+    toJSON (OutputObject x) = toJSON $ toJSON <$> x
+    toJSON (OutputList   x) = toJSON $ toJSON <$> x
+    toJSON (OutputScalar x) = toJSON x
+    toJSON (OutputEnum   x) = toJSON x
+

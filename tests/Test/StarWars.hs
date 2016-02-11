@@ -4,14 +4,17 @@
 module Test.StarWars where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative, (<$>), pure)
+import Control.Applicative ((<$>), pure)
 import Data.Monoid (mempty)
 import Data.Traversable (traverse)
 #endif
 import Control.Applicative (Alternative, (<|>), empty, liftA2)
+import Data.Foldable (fold)
 import Data.Maybe (catMaybes)
 
 import Data.Aeson (object, (.=))
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
 import Data.Text (Text)
 import Text.RawString.QQ (r)
 
@@ -111,7 +114,18 @@ test = testGroup "Star Wars Query Tests"
                    ]
                ]
            ]
-      ]
+    , testCase "Luke ID" $ (@?=) (graphql schema [r|
+query FetchLukeQuery {
+  human(id: "1000") {
+    name
+  }
+}|]) . Just
+     $ object [
+        "human" .= object [
+           "name" .= ("Luke Skywalker" :: Text)
+           ]
+        ]
+    ]
   ]
 
 -- * Schema
@@ -119,52 +133,53 @@ test = testGroup "Star Wars Query Tests"
 
 type ID = Text
 
-schema :: Alternative f => Schema f
+schema :: (Alternative m, Monad m) => Schema m
 schema = Schema query
 
-query :: Alternative f => QueryRoot f
-query (InputField "hero")  = pure $ OutputResolver hero
-query (InputField "human") = pure $ OutputResolver human
-query (InputField "droid") = pure $ OutputResolver droid
+query :: (Alternative m, Monad m) => QueryRoot m
+query (InputField "hero"  args ins) = hero  args ins
+query (InputField "human" args ins) = human args ins
+query (InputField "droid" args ins) = droid args ins
 query _ = empty
 
-hero :: Alternative f => Resolver f
-hero (InputList (InputScalar (ScalarInt ep) : inputFields)) =
-    withFields inputFields <$> getHero ep
-hero (InputField fld) = characterOutput fld $ Left artoo
-hero _ = empty
+hero :: Alternative f => [Argument] -> [Input] -> f Output
+hero [] = characterFields artoo
+hero [("episode", ScalarInt n)] = characterFields $ getHero n
+hero _ = const empty
 
-human :: Alternative f => Resolver f
-human (InputList (InputScalar (ScalarID i) : inputFields)) =
-    withFields inputFields <$> getHuman i
-human _ = empty
+human :: (Alternative m, Monad m) => [Argument] -> [Input] -> m Output
+human [("id", ScalarString i)] ins = flip characterFields ins =<< getHuman i
+human _ _ = empty
 
-droid :: Alternative f => Resolver f
-droid (InputList (InputScalar (ScalarID i) : inputFields)) =
-    withFields inputFields <$> getDroid i
-droid _ = empty
+droid :: (Alternative m, Monad m) => [Argument] -> [Input] -> m Output
+droid [("id", ScalarString i)] ins = flip characterFields ins =<< getDroid i
+droid _ _ = empty
 
-episode :: Alternative f => Int -> Output f
-episode 4 = OutputEnum $ pure "NEWHOPE"
-episode 5 = OutputEnum $ pure "EMPIRE"
-episode 6 = OutputEnum $ pure "JEDI"
-episode _ = OutputEnum empty
+episode :: Alternative f => Int -> f Output
+episode 4 = pure $ OutputEnum "NEWHOPE"
+episode 5 = pure $ OutputEnum "EMPIRE"
+episode 6 = pure $ OutputEnum "JEDI"
+episode _ = empty
 
-characterOutput :: Alternative f => Text -> Character -> f (Output f)
-characterOutput "id" char =
-    pure $ OutputScalar . pure . ScalarString $ id_  char
-characterOutput "name" char =
-    pure $ OutputScalar . pure . ScalarString $ name char
-characterOutput "friends" char =
-    pure . OutputList . pure $ OutputResolver . (\c (InputField f) ->
-      characterOutput f c) <$> getFriends char
-characterOutput "appearsIn" char =
-    pure $ OutputList . pure . fmap episode $ appearsIn char
-characterOutput _ _ = empty
+characterField :: Alternative f => Character -> Input -> f (HashMap Text Output)
+characterField char (InputField "id" [] [])  =
+   pure . HashMap.singleton "id" . OutputScalar . ScalarString . id_ $ char
+characterField char (InputField "name" [] []) =
+   pure . HashMap.singleton "name" . OutputScalar . ScalarString . name $ char
+characterField char (InputField "friends" [] ins) =
+     fmap (HashMap.singleton "friends" . OutputList)
+   . traverse (`characterFields` ins)
+   . getFriends
+   $ char
+characterField char (InputField "appearsIn" [] []) =
+     fmap (HashMap.singleton "appearsIn" . OutputList)
+   . traverse episode
+   . appearsIn
+   $ char
+characterField _ _ = empty
 
-withFields :: Alternative f => [Input] -> Character -> Output f
-withFields inputFields char =
-    OutputList . traverse (`characterOutput` char) $ fields inputFields
+characterFields :: Alternative f => Character -> [Input] -> f Output
+characterFields char = fmap (OutputObject . fold) . traverse (characterField char)
 
 -- * Data
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsData.js
@@ -209,8 +224,11 @@ appearsIn :: Character -> [Int]
 appearsIn (Left  x) = _appearsIn . _droidChar $ x
 appearsIn (Right x) = _appearsIn . _humanChar $ x
 
-luke :: Human
-luke = Human
+luke :: Character
+luke = Right luke'
+
+luke' :: Human
+luke' = Human
   { _humanChar = CharCommon
       { _id_        = "1000"
       , _name       = "Luke Skywalker"
@@ -275,8 +293,12 @@ threepio = Droid
   , primaryFunction = "Protocol"
   }
 
-artoo :: Droid
-artoo = Droid
+artoo :: Character
+artoo = Left artoo'
+
+
+artoo' :: Droid
+artoo' = Droid
   { _droidChar = CharCommon
       { _id_        = "2001"
       , _name       = "R2-D2"
@@ -288,19 +310,19 @@ artoo = Droid
 
 -- ** Helper functions
 
-getHero :: Applicative f => Int -> f Character
-getHero 5 = pure $ Right luke
-getHero _ = pure $ Left artoo
+getHero :: Int -> Character
+getHero 5 = luke
+getHero _ = artoo
 
 getHeroIO :: Int -> IO Character
-getHeroIO = getHero
+getHeroIO = pure . getHero
 
 
 getHuman :: Alternative f => ID -> f Character
 getHuman = fmap Right . getHuman'
 
 getHuman' :: Alternative f => ID -> f Human
-getHuman' "1000" = pure luke
+getHuman' "1000" = pure luke'
 getHuman' "1001" = pure vader
 getHuman' "1002" = pure han
 getHuman' "1003" = pure leia
@@ -312,7 +334,7 @@ getDroid = fmap Left . getDroid'
 
 getDroid' :: Alternative f => ID -> f Droid
 getDroid' "2000" = pure threepio
-getDroid' "2001" = pure artoo
+getDroid' "2001" = pure artoo'
 getDroid' _      = empty
 
 getFriends :: Character -> [Character]

@@ -3,7 +3,7 @@
 module Data.GraphQL.Execute where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative, (<$>), pure)
+import Control.Applicative ((<$>), pure)
 import Data.Traversable (traverse)
 #endif
 import Control.Applicative (Alternative, empty)
@@ -13,32 +13,35 @@ import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HashMap
 
 import Data.GraphQL.AST
-import Data.GraphQL.Schema
+import Data.GraphQL.Schema (Resolver, Schema(..))
+import qualified Data.GraphQL.Schema as Schema
 
-execute :: (Alternative f, Monad f) => Schema f -> Document -> f Aeson.Value
+execute :: (Alternative m, Monad m) => Schema m -> Document -> m Aeson.Value
 execute (Schema resolv) doc = selectionSet resolv =<< query doc
 
-query :: Applicative f => Document -> f SelectionSet
+query :: Alternative f => Document -> f SelectionSet
 query (Document [DefinitionOperation (Query (Node _ _ _ sels))]) = pure sels
-query _ = error "query: Not implemented yet"
+query _ = empty
 
-selectionSet :: (Alternative f, Monad f) => Resolver f -> SelectionSet -> f Aeson.Value
-selectionSet resolv sels = Aeson.Object . fold <$> traverse (selection resolv) sels
+selectionSet :: Alternative f => Resolver f -> SelectionSet -> f Aeson.Value
+selectionSet resolv = fmap (Aeson.Object . fold) . traverse (selection resolv)
 
-selection :: (Alternative f, Monad f) => Resolver f -> Selection -> f Aeson.Object
-selection resolv (SelectionField (Field _ n _ _ sfs)) =
-    fmap (HashMap.singleton n) $ output sfs =<< resolv (InputField n)
-selection _ _ = error "selection: Not implemented yet"
+selection :: Alternative f => Resolver f -> Selection -> f Aeson.Object
+selection resolv (SelectionField field@(Field _ name _ _ _)) =
+    fmap (HashMap.singleton name) $ Aeson.toJSON <$> resolv (fieldToInput field)
+selection _ _ = empty
 
-output :: (Alternative f, Monad f) => SelectionSet -> Output f -> f Aeson.Value
-output sels (OutputResolver resolv) = selectionSet resolv sels
-output sels (OutputList os) = fmap array . traverse (output sels) =<< os
-output sels (OutputEnum e)
-   | null sels = Aeson.toJSON <$> e
-   | otherwise = empty
-output sels (OutputScalar s)
-   | null sels = Aeson.toJSON <$> s
-   | otherwise = empty
+-- * AST/Schema conversions
 
-array :: [Aeson.Value] -> Aeson.Value
-array = Aeson.toJSON
+argument :: Argument -> Schema.Argument
+argument (Argument n (ValueInt v)) = (n, Schema.ScalarInt $ fromIntegral v)
+argument (Argument n (ValueString (StringValue v))) = (n, Schema.ScalarString v)
+argument _ = error "argument: not implemented yet"
+
+fieldToInput :: Field -> Schema.Input
+fieldToInput (Field _ n as _ sels) =
+  Schema.InputField n (argument <$> as) (fieldToInput . selectionToField <$> sels)
+
+selectionToField :: Selection -> Field
+selectionToField (SelectionField x) = x
+selectionToField _ = error "selectionField: not implemented yet"

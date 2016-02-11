@@ -49,6 +49,7 @@ test-suite tasty
                        raw-strings-qq >= 1.1,
                        tasty >= 0.10,
                        tasty-hunit >= 0.9,
+                       unordered-containers >= 0.2.5.0,
                        graphql
 
 source-repository head
