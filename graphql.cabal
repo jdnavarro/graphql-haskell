@@ -41,7 +41,9 @@ test-suite tasty
   main-is:             tasty.hs
   ghc-options:         -Wall
   other-modules:       Paths_graphql
-                       Test.StarWars
+                       Test.StarWars.Data
+                       Test.StarWars.Schema
+                       Test.StarWars.QueryTests
   build-depends:       base >= 4.6 && <5,
                        aeson >= 0.7.0.3,
                        text >= 0.11.3.1,

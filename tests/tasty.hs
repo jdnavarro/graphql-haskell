@@ -14,7 +14,7 @@ import Test.Tasty.HUnit
 import qualified Data.GraphQL.Parser as Parser
 import qualified Data.GraphQL.Encoder as Encoder
 
-import qualified Test.StarWars as SW
+import qualified Test.StarWars.QueryTests as SW
 import Paths_graphql (getDataFileName)
 
 main :: IO ()
