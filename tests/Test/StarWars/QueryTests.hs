@@ -11,6 +11,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
 import Data.GraphQL
+import Data.GraphQL.Schema (Subs)
 
 import Test.StarWars.Schema
 
@@ -19,6 +20,9 @@ import Test.StarWars.Schema
 
 testQuery :: Text -> Aeson.Value -> Assertion
 testQuery q expected = graphql schema q @?= Just expected
+
+testQueryParams :: Subs -> Text -> Aeson.Value -> Assertion
+testQueryParams f q expected = graphqlSubs schema f q @?= Just expected
 
 test :: TestTree
 test = testGroup "Star Wars Query Tests"
@@ -118,4 +122,17 @@ test = testGroup "Star Wars Query Tests"
           ]
         ]
     ]
+    , testCase "Luke ID with variable" . testQueryParams
+         (\v -> if v == "someId"
+                   then Just "1000"
+                   else Nothing)
+         [r| query FetchSomeIDQuery($someId: String!) {
+               human(id: $someId) {
+                 name
+               }
+             }
+         |]
+      $ object [
+          "human" .= object ["name" .= ("Luke Skywalker" :: Text)]
+        ]
   ]

@@ -12,5 +12,9 @@ import Data.GraphQL.Parser
 import Data.GraphQL.Schema
 
 graphql :: (Alternative m, Monad m) => Schema m -> Text -> m Aeson.Value
-graphql schema = either (const empty) (execute schema)
-               . Attoparsec.parseOnly document
+graphql = flip graphqlSubs $ const Nothing
+
+graphqlSubs :: (Alternative m, Monad m) => Schema m -> Subs -> Text -> m Aeson.Value
+graphqlSubs schema f =
+    either (const empty) (execute schema f)
+  . Attoparsec.parseOnly document
