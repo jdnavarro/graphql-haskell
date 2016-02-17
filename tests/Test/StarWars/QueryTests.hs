@@ -2,8 +2,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Test.StarWars.QueryTests (test) where
 
-import Data.Aeson (object, (.=))
 import qualified Data.Aeson as Aeson (Value)
+import Data.Aeson (object, (.=))
 import Data.Text (Text)
 import Text.RawString.QQ (r)
 
@@ -135,4 +135,34 @@ test = testGroup "Star Wars Query Tests"
       $ object [
           "human" .= object ["name" .= ("Luke Skywalker" :: Text)]
         ]
+    , testCase "Han ID with variable" . testQueryParams
+        (\v -> if v == "someId"
+                  then Just "1002"
+                  else Nothing)
+        [r| query FetchSomeIDQuery($someId: String!) {
+              human(id: $someId) {
+                name
+              }
+            }
+        |]
+      $ object [
+          "human" .= object ["name" .= ("Han Solo" :: Text)]
+        ]
+    -- TODO: This test is directly ported from `graphql-js`, however do we want
+    -- to mimic the same behavior? Is this part of the spec? Once proper
+    -- exceptions are implemented this test might no longer be meaningful.
+    -- If the same behavior needs to be replicated, should it be implemented
+    -- when defining the `Schema` or when executing?
+    --
+    -- , testCase "Invalid ID" . testQueryParams
+    --     (\v -> if v == "id"
+    --               then Just "Not a valid ID"
+    --               else Nothing)
+    --     [r| query humanQuery($id: String!) {
+    --           human(id: $id) {
+    --             name
+    --           }
+    --         }
+    --     |]
+    --   $ object ["human" .= Aeson.Null]
   ]
