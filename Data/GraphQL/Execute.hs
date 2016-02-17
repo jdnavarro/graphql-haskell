@@ -11,6 +11,7 @@ import Data.Maybe (catMaybes)
 
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text as T
 
 import Data.GraphQL.AST
 import Data.GraphQL.Schema (Resolver, Schema(..))
@@ -28,8 +29,10 @@ selectionSet :: Alternative f => Schema.Subs -> Resolver f -> SelectionSet -> f 
 selectionSet f resolv = fmap (Aeson.Object . fold) . traverse (selection f resolv)
 
 selection :: Alternative f => Schema.Subs -> Resolver f -> Selection -> f Aeson.Object
-selection f resolv (SelectionField field@(Field _ name _ _ _)) =
-    fmap (HashMap.singleton name) $ Aeson.toJSON <$> resolv (fieldToInput f field)
+selection f resolv (SelectionField field@(Field alias name _ _ _)) =
+    fmap (HashMap.singleton aliasOrName) $ Aeson.toJSON <$> resolv (fieldToInput f field)
+  where
+    aliasOrName = if T.null alias then name else alias
 selection _ _ _ = empty
 
 -- * AST/Schema conversions

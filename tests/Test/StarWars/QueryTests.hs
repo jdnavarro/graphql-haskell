@@ -165,4 +165,34 @@ test = testGroup "Star Wars Query Tests"
     --         }
     --     |]
     --   $ object ["human" .= Aeson.Null]
+    , testCase "Luke with alias" . testQuery
+        [r| query FetchLukeAliased {
+              luke: human(id: "1000") {
+                name
+              }
+            }
+        |]
+      $ object [
+         "luke" .= object [
+           "name" .= ("Luke Skywalker" :: Text)
+           ]
+        ]
+    , testCase "Luke and Leia aliased" . testQuery
+        [r| query FetchLukeAndLeiaAliased {
+              luke: human(id: "1000") {
+                name
+              }
+              leia: human(id: "1003") {
+                name
+              }
+            }
+        |]
+      $ object [
+          "luke" .= object [
+            "name" .= ("Luke Skywalker" :: Text)
+           ]
+        , "leia" .= object [
+            "name" .= ("Leia Organa" :: Text)
+           ]
+        ]
   ]
