@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-module Data.GraphQL.Execute where
+module Data.GraphQL.Execute (execute) where
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), pure)
@@ -17,20 +17,28 @@ import Data.GraphQL.AST
 import Data.GraphQL.Schema (Resolver, Schema(..))
 import qualified Data.GraphQL.Schema as Schema
 
-execute :: (Alternative m, Monad m) => Schema m -> Schema.Subs -> Document -> m Aeson.Value
+execute
+  :: (Alternative m, Monad m)
+  => Schema m -> Schema.Subs -> Document -> m Aeson.Value
 execute (Schema resolv) f doc = selectionSet f resolv =<< query doc
 
 query :: Alternative f => Document -> f SelectionSet
-query (Document [DefinitionOperation (Query (Node _varDefs _ _ sels))]) =
-  pure sels
+query (Document [DefinitionOperation (Query (Node _varDefs _ _ sels))]) = pure sels
 query  _ = empty
 
-selectionSet :: Alternative f => Schema.Subs -> Resolver f -> SelectionSet -> f Aeson.Value
-selectionSet f resolv = fmap (Aeson.Object . fold) . traverse (selection f resolv)
+selectionSet
+  :: Alternative f
+  => Schema.Subs -> Resolver f -> SelectionSet -> f Aeson.Value
+selectionSet f resolv = fmap (Aeson.Object . fold)
+                      . traverse (selection f resolv)
 
-selection :: Alternative f => Schema.Subs -> Resolver f -> Selection -> f Aeson.Object
+selection
+  :: Alternative f
+  => Schema.Subs -> Resolver f -> Selection -> f Aeson.Object
 selection f resolv (SelectionField field@(Field alias name _ _ _)) =
-    fmap (HashMap.singleton aliasOrName) $ Aeson.toJSON <$> resolv (fieldToInput f field)
+    fmap (HashMap.singleton aliasOrName)
+      $  Aeson.toJSON
+     <$> resolv (fieldToInput f field)
   where
     aliasOrName = if T.null alias then name else alias
 selection _ _ _ = empty
@@ -48,6 +56,7 @@ argument _ _ = error "argument: not implemented yet"
 
 fieldToInput :: Schema.Subs -> Field -> Schema.Input
 fieldToInput f (Field _ n as _ sels) =
+    -- TODO: Get rid of `catMaybes`, invalid arguments should raise an error
     Schema.InputField n (catMaybes $ argument f <$> as)
                         (fieldToInput f . selectionToField <$> sels)
 

@@ -10,7 +10,7 @@ import Data.Aeson (ToJSON(toJSON))
 import Data.HashMap.Strict (HashMap)
 import Data.Text (Text, pack)
 
-data Schema f = Schema (QueryRoot f) -- (Maybe  MutationRoot)
+data Schema f = Schema (QueryRoot f)
 
 type QueryRoot f = Resolver f
 
@@ -21,8 +21,6 @@ data Output = OutputObject (HashMap Text Output)
             | OutputScalar Scalar
             | OutputEnum Text
               deriving (Show)
-           -- | OutputUnion [Output]
-           -- | OutputNonNull (Output)
 
 type Argument = (Text, Scalar)
 
@@ -31,7 +29,7 @@ type Subs = Text -> Maybe Scalar
 data Input = InputField Text [Argument] [Input]
              deriving (Show)
 
--- TODO: Make ScalarInt Int32
+-- TODO: GraphQL spec for Integer Scalar is 32bits
 data Scalar = ScalarInt     Int
             | ScalarFloat   Double
             | ScalarString  Text
@@ -40,7 +38,7 @@ data Scalar = ScalarInt     Int
               deriving (Show)
 
 instance IsString Scalar where
-  fromString = ScalarString . pack
+    fromString = ScalarString . pack
 
 instance ToJSON Scalar where
     toJSON (ScalarInt     x) = toJSON x
