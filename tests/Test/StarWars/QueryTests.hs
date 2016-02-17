@@ -18,12 +18,6 @@ import Test.StarWars.Schema
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
-testQuery :: Text -> Aeson.Value -> Assertion
-testQuery q expected = graphql schema q @?= Just expected
-
-testQueryParams :: Subs -> Text -> Aeson.Value -> Assertion
-testQueryParams f q expected = graphqlSubs schema f q @?= Just expected
-
 test :: TestTree
 test = testGroup "Star Wars Query Tests"
   [ testGroup "Basic Queries"
@@ -148,24 +142,23 @@ test = testGroup "Star Wars Query Tests"
       $ object [
           "human" .= object ["name" .= ("Han Solo" :: Text)]
         ]
-    -- TODO: This test is directly ported from `graphql-js`, however do we want
-    -- to mimic the same behavior? Is this part of the spec? Once proper
-    -- exceptions are implemented this test might no longer be meaningful.
-    -- If the same behavior needs to be replicated, should it be implemented
-    -- when defining the `Schema` or when executing?
-    --
-    -- , testCase "Invalid ID" . testQueryParams
-    --     (\v -> if v == "id"
-    --               then Just "Not a valid ID"
-    --               else Nothing)
-    --     [r| query humanQuery($id: String!) {
-    --           human(id: $id) {
-    --             name
-    --           }
-    --         }
-    --     |]
-    --   $ object ["human" .= Aeson.Null]
-    , testCase "Luke with alias" . testQuery
+    , testCase "Invalid ID" $ testFailParams
+        (\v -> if v == "id"
+                  then Just "Not a valid ID"
+                  else Nothing)
+        [r| query humanQuery($id: String!) {
+              human(id: $id) {
+                name
+              }
+            }
+        |]
+        -- TODO: This test is directly ported from `graphql-js`, however do we want
+        -- to mimic the same behavior? Is this part of the spec? Once proper
+        -- exceptions are implemented this test might no longer be meaningful.
+        -- If the same behavior needs to be replicated, should it be implemented
+        -- when defining the `Schema` or when executing?
+        -- $ object ["human" .= Aeson.Null]
+    , testCase "Luke aliased" . testQuery
         [r| query FetchLukeAliased {
               luke: human(id: "1000") {
                 name
@@ -176,6 +169,28 @@ test = testGroup "Star Wars Query Tests"
          "luke" .= object [
            "name" .= ("Luke Skywalker" :: Text)
            ]
+        ]
+    , testCase "R2-D2 ID and friends aliased" . testQuery
+        [r| query HeroNameAndFriendsQuery {
+              hero {
+                id
+                name
+                friends {
+                  friendName: name
+                }
+              }
+            }
+        |]
+      $ object [
+          "hero" .= object [
+              "id" .= ("2001" :: Text)
+            , "name" .= ("R2-D2" :: Text)
+            , "friends" .= [
+                  object ["friendName" .= ("Luke Skywalker" :: Text)]
+                , object ["friendName" .= ("Han Solo" :: Text)]
+                , object ["friendName" .= ("Leia Organa" :: Text)]
+                ]
+            ]
         ]
     , testCase "Luke and Leia aliased" . testQuery
         [r| query FetchLukeAndLeiaAliased {
@@ -196,3 +211,15 @@ test = testGroup "Star Wars Query Tests"
            ]
         ]
   ]
+
+testQuery :: Text -> Aeson.Value -> Assertion
+testQuery q expected = graphql schema q @?= Just expected
+
+-- testFail :: Text -> Assertion
+-- testFail q = graphql schema q @?= Nothing
+
+testQueryParams :: Subs -> Text -> Aeson.Value -> Assertion
+testQueryParams f q expected = graphqlSubs schema f q @?= Just expected
+
+testFailParams :: Subs -> Text -> Assertion
+testFailParams f q = graphqlSubs schema f q @?= Nothing

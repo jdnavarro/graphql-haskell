@@ -38,7 +38,7 @@ data Droid = Droid
 
 type Character = Either Droid Human
 
--- I don't think this is cumbersome enough to make it worth using lens.
+-- I still don't think this is cumbersome enough to bring lens
 
 id_ :: Character -> ID
 id_ (Left  x) = _id_ . _droidChar $ x
@@ -128,7 +128,6 @@ threepio = Droid
 artoo :: Character
 artoo = Left artoo'
 
-
 artoo' :: Droid
 artoo' = Droid
   { _droidChar = CharCommon
@@ -148,7 +147,6 @@ getHero _ = artoo
 
 getHeroIO :: Int -> IO Character
 getHeroIO = pure . getHero
-
 
 getHuman :: Alternative f => ID -> f Character
 getHuman = fmap Right . getHuman'
@@ -171,3 +169,9 @@ getDroid' _      = empty
 
 getFriends :: Character -> [Character]
 getFriends char = catMaybes $ liftA2 (<|>) getDroid getHuman <$> friends char
+
+getEpisode :: Alternative f => Int -> f Text
+getEpisode 4 = pure "NEWHOPE"
+getEpisode 5 = pure "EMPIRE"
+getEpisode 6 = pure "JEDI"
+getEpisode _ = empty
