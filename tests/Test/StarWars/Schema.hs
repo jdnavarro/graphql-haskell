@@ -1,55 +1,45 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.StarWars.Schema where
 
-import Control.Applicative ((<|>), Alternative, empty)
+import Control.Applicative (Alternative, empty)
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+import Data.Traversable (traverse)
+#endif
 import Data.GraphQL.Schema
+import qualified Data.GraphQL.Schema as Schema
 
 import Test.StarWars.Data
 
 -- * Schema
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsSchema.js
 
-schema :: (Alternative m, Monad m) => Schema m
-schema = Schema query
+schema :: Alternative f => Schema f
+schema = Schema [hero, human, droid]
 
-query :: (Alternative m, Monad m) => ResolverM m
-query fld =
-      withField "hero"  hero  fld
-  <|> withField "human" human fld
-  <|> withField "droid" droid fld
+hero :: Alternative f => Resolver f
+hero = Schema.objectA "hero" $ \case
+  [] -> character artoo
+  [Argument "episode" (ValueInt n)] -> character $ getHero (fromIntegral n)
+  _ -> empty
 
-hero :: Alternative f => [Argument] -> ResolverO f
-hero [] = characterFields artoo
-hero args =
-  case withArgument "episode" args of
-       Just (ScalarInt n) -> characterFields $ getHero n
-       _ -> const empty
+human :: Alternative f => Resolver f
+human = Schema.objectA "human" $ \case
+  [Argument "id" (ValueString (StringValue i))] -> character =<< getHuman i
+  _ -> empty
 
-human :: (Alternative m, Monad m) => [Argument] -> ResolverO m
-human args flds =
-  case withArgument "id" args of
-       Just (ScalarString i) -> flip characterFields flds =<< getHuman i
-       _ -> empty
+droid :: Alternative f => Resolver f
+droid = Schema.objectA "droid" $ \case
+   [Argument "id" (ValueString (StringValue i))] -> character =<< getDroid i
+   _ -> empty
 
-droid :: (Alternative m, Monad m) => [Argument] -> ResolverO m
-droid args flds =
-   case withArgument "id" args of
-        Just (ScalarString i) -> flip characterFields flds =<< getDroid i
-        _ -> empty
-
-characterField :: Alternative f => Character -> ResolverM f
-characterField char fld =
-      withFieldFinal "id"        (OutputScalar . ScalarString . id_ $ char) fld
-  <|> withFieldFinal "name"      (OutputScalar . ScalarString . name $ char) fld
-  <|> withField      "friends"   friends' fld
-  <|> withField      "appearsIn" appears' fld
-  where
-    friends' [] flds = outputTraverse (`characterFields` flds) $ getFriends char
-    friends' _ _ = empty
-
-    appears' [] [] = outputTraverse (fmap OutputEnum . getEpisode) $ appearsIn char
-    appears' _ _ = empty
-
-characterFields :: Alternative f => Character -> ResolverO f
-characterFields = withFields . characterField
+character :: Alternative f => Character -> [Resolver f]
+character char =
+  [ Schema.scalar "id"        $ id_ char
+  , Schema.scalar "name"      $ name char
+  , Schema.array  "friends"   $ character <$> getFriends char
+  , Schema.enum   "appearsIn" . traverse getEpisode $ appearsIn char
+  ]

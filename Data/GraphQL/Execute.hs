@@ -14,10 +14,9 @@ import Data.GraphQL.Schema (Schema(..))
 import qualified Data.GraphQL.Schema as Schema
 
 execute
-  :: Alternative m
-  => Schema m -> Schema.Subs -> Document -> m Aeson.Value
-execute (Schema resolvm) subs =
-   fmap Aeson.toJSON . Schema.withFields resolvm . rootFields subs
+  :: Alternative f
+  => Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
+execute (Schema resolvs) subs = Schema.resolvers resolvs . rootFields subs
 
 rootFields :: Schema.Subs -> Document -> [Field]
 rootFields subs (Document [DefinitionOperation (Query (Node _varDefs _ _ sels))]) =
