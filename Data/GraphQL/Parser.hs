@@ -169,8 +169,8 @@ booleanValue = True  <$ tok "true"
    <|> False <$ tok "false"
 
 -- TODO: Escape characters. Look at `jsstring_` in aeson package.
-stringValue :: Parser StringValue
-stringValue = StringValue <$> quotes (takeWhile (/= '"'))
+stringValue :: Parser Text
+stringValue = quotes (takeWhile (/= '"'))
 
 -- Notice it can be empty
 listValue :: Parser ListValue

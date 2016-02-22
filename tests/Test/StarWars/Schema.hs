@@ -28,12 +28,12 @@ hero = Schema.objectA "hero" $ \case
 
 human :: Alternative f => Resolver f
 human = Schema.objectA "human" $ \case
-  [Argument "id" (ValueString (StringValue i))] -> character =<< getHuman i
+  [Argument "id" (ValueString i)] -> character =<< getHuman i
   _ -> empty
 
 droid :: Alternative f => Resolver f
 droid = Schema.objectA "droid" $ \case
-   [Argument "id" (ValueString (StringValue i))] -> character =<< getDroid i
+   [Argument "id" (ValueString i)] -> character =<< getDroid i
    _ -> empty
 
 character :: Alternative f => Character -> [Resolver f]

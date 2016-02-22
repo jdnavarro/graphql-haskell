@@ -18,7 +18,6 @@ module Data.GraphQL.Schema
   , Field
   , Argument(..)
   , Value(..)
-  , StringValue(..)
   ) where
 
 #if !MIN_VERSION_base(4,8,0)

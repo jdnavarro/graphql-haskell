@@ -37,5 +37,5 @@ substitute _ sel = sel
 -- TODO: Support different value types
 subsArg :: Schema.Subs -> Argument -> Maybe Argument
 subsArg subs (Argument n (ValueVariable (Variable v))) =
-    Argument n . ValueString . StringValue <$> subs v
+    Argument n . ValueString <$> subs v
 subsArg _ arg = Just arg

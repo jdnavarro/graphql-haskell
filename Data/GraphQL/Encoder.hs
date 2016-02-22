@@ -106,8 +106,8 @@ booleanValue True  = "true"
 booleanValue False = "false"
 
 -- TODO: Escape characters
-stringValue :: StringValue -> Text
-stringValue (StringValue v) = quotes v
+stringValue :: Text -> Text
+stringValue = quotes
 
 listValue :: ListValue -> Text
 listValue (ListValue vs) = bracketsCommas value vs
