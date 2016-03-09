@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | The module Data.GraphQL.Parser defines a parser
+--   for GraphQl request documents.
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)

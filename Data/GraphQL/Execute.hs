@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 -- | The module Data.GraphQL.Execute provides
 --   a the function execute which executes a GraphQL
---   query according to a given GraphQL schema.
+--   request according to a given GraphQL schema.
 module Data.GraphQL.Execute (execute) where
 
 #if !MIN_VERSION_base(4,8,0)

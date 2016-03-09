@@ -1,3 +1,5 @@
+-- | The module Data.GraphQL.AST defines an
+--   abstract syntax tree for the GraphQL language.
 module Data.GraphQL.AST where
 
 import Data.Int (Int32)
