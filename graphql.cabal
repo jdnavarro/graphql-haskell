@@ -16,6 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 tested-with:         GHC == 7.8.4, GHC == 7.10.3
 extra-source-files:  README.md CHANGELOG.md stack.yaml
+                     docs/tutorial/tutorial.lhs
 data-files:          tests/data/*.graphql
                      tests/data/*.min.graphql
 
