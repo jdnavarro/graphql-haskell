@@ -65,7 +65,7 @@ scalar :: (Alternative f, Aeson.ToJSON a) => Text -> a -> Resolver f
 scalar name s = scalarA name $ \case
     [] -> pure s
     _  -> empty
-    
+
 -- | Arguments can be used to further specify a scalar's return value
 scalarA
   :: (Alternative f, Aeson.ToJSON a)
@@ -109,7 +109,6 @@ withField name f (Field alias name' _ _ _) =
      where
        aliasOrName = if T.null alias then name' else alias
 
--- |
 resolvers :: Alternative f => [Resolver f] -> [Field] -> f Aeson.Value
 resolvers resolvs =
     fmap (Aeson.toJSON . fold)
