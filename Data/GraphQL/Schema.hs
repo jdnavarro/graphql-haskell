@@ -40,9 +40,14 @@ import qualified Data.Text as T (null)
 
 import Data.GraphQL.AST
 
+-- | Schema represents a GraphQL schema.
+--   f usually has to be an instance of Alternative.
 data Schema f = Schema [Resolver f]
 
-type Resolver  f = Field -> f Aeson.Object
+-- | Resolver resolves a field in to a wrapped Aeson object
+--   (or empty).
+--   f usually has to be an instance of Alternative.
+type Resolver f = Field -> f Aeson.Object
 
 type Subs = Text -> Maybe Text
 
@@ -66,14 +71,14 @@ scalar name s = scalarA name $ \case
     [] -> pure s
     _  -> empty
 
--- | Arguments can be used to further specify a scalar's return value
+-- | Arguments can be used to further specify a scalar's return value.
 scalarA
   :: (Alternative f, Aeson.ToJSON a)
   => Text -> ([Argument] -> f a) -> Resolver f
 scalarA name f fld@(Field _ _ args _ []) = withField name (f args) fld
 scalarA _ _ _ = empty
 
--- | arrays are like objects but have an array of resolvers instead of a list
+-- | Arrays are like objects but have an array of resolvers instead of a list.
 array :: Alternative f => Text -> [[Resolver f]] -> Resolver f
 array name resolvs = arrayA name $ \case
     [] -> resolvs
@@ -98,7 +103,7 @@ enumA :: Alternative f => Text -> ([Argument] -> f [Text]) -> Resolver f
 enumA name f fld@(Field _ _ args _ []) = withField name (f args) fld
 enumA _ _ _ = empty
 
--- | Used to implement a resolver with arguments
+-- | Used to implement a resolver with arguments.
 withField
   :: (Alternative f, Aeson.ToJSON a)
   => Text -> f a -> Field -> f (HashMap Text Aeson.Value)
@@ -109,18 +114,22 @@ withField name f (Field alias name' _ _ _) =
      where
        aliasOrName = if T.null alias then name' else alias
 
+-- | resolvers takes a list resolvers and a list of fields,
+--   and applies each resolver to each field. Returns the
+--   list of the first non-empty resolutions for each field
+--   (wrapped in an Aeson.Value).
 resolvers :: Alternative f => [Resolver f] -> [Field] -> f Aeson.Value
 resolvers resolvs =
     fmap (Aeson.toJSON . fold)
   . traverse (\fld -> getAlt $ foldMap (Alt . ($ fld)) resolvs)
 
 -- | Checks whether the given selection contains a field and
---   returns the field if so, else returns Nothing
+--   returns the field if so, else returns Nothing.
 field :: Selection -> Maybe Field
 field (SelectionField x) = Just x
 field _ = Nothing
 
--- | Returns a list of the fields contained in the given selection set
+-- | Returns a list of the fields contained in the given selection set.
 fields :: SelectionSet -> [Field]
 fields = catMaybes . fmap field
 
