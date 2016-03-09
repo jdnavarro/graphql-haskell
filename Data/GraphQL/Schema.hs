@@ -49,6 +49,7 @@ data Schema f = Schema [Resolver f]
 --   f usually has to be an instance of Alternative.
 type Resolver f = Field -> f Aeson.Object
 
+-- | Subs represents a substitution.
 type Subs = Text -> Maybe Text
 
 -- | Objects represent a list of named fields, each of which
@@ -114,10 +115,10 @@ withField name f (Field alias name' _ _ _) =
      where
        aliasOrName = if T.null alias then name' else alias
 
--- | resolvers takes a list resolvers and a list of fields,
---   and applies each resolver to each field. Returns the
---   list of the first non-empty resolutions for each field
---   (wrapped in an Aeson.Value).
+-- | resolvers takes a list of resolvers and a list of fields,
+--   and applies each resolver to each field.
+--   Returns the list of the first non-empty resolutions
+--   for each field (wrapped in an Aeson.Value).
 resolvers :: Alternative f => [Resolver f] -> [Field] -> f Aeson.Value
 resolvers resolvs =
     fmap (Aeson.toJSON . fold)
