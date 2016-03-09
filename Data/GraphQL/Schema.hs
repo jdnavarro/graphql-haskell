@@ -46,48 +46,59 @@ type Resolver  f = Field -> f Aeson.Object
 
 type Subs = Text -> Maybe Text
 
+-- | Objects represent a list of named fields, each of which
+--   yield a value of a specific type.
 object :: Alternative f => Text -> [Resolver f] -> Resolver f
 object name resolvs = objectA name $ \case
      [] -> resolvs
      _  -> empty
 
+-- | Fields can accept arguments to further specify the return value.
 objectA
   :: Alternative f
   => Text -> ([Argument] -> [Resolver f]) -> Resolver f
 objectA name f fld@(Field _ _ args _ sels) =
     withField name (resolvers (f args) $ fields sels) fld
 
+-- | A scalar represents a primitive value, like a string or an integer.
 scalar :: (Alternative f, Aeson.ToJSON a) => Text -> a -> Resolver f
 scalar name s = scalarA name $ \case
     [] -> pure s
     _  -> empty
-
+    
+-- | Arguments can be used to further specify a scalar's return value
 scalarA
   :: (Alternative f, Aeson.ToJSON a)
   => Text -> ([Argument] -> f a) -> Resolver f
 scalarA name f fld@(Field _ _ args _ []) = withField name (f args) fld
 scalarA _ _ _ = empty
 
+-- | arrays are like objects but have an array of resolvers instead of a list
 array :: Alternative f => Text -> [[Resolver f]] -> Resolver f
 array name resolvs = arrayA name $ \case
     [] -> resolvs
     _  -> empty
 
+-- | Arguments can be used to further specify an array's return values.
 arrayA
   :: Alternative f
   => Text -> ([Argument] -> [[Resolver f]]) -> Resolver f
 arrayA name f fld@(Field _ _ args _ sels) =
      withField name (traverse (flip resolvers $ fields sels) $ f args) fld
 
+-- | An enum represents one of a finite set of possible values.
+--   Used in place of a scalar when the possible responses are easily enumerable.
 enum :: Alternative f => Text -> f [Text] -> Resolver f
 enum name enums = enumA name $ \case
      [] -> enums
      _  -> empty
 
+-- | Arguments can be used to further specify an enum's return values.
 enumA :: Alternative f => Text -> ([Argument] -> f [Text]) -> Resolver f
 enumA name f fld@(Field _ _ args _ []) = withField name (f args) fld
 enumA _ _ _ = empty
 
+-- | Used to implement a resolver with arguments
 withField
   :: (Alternative f, Aeson.ToJSON a)
   => Text -> f a -> Field -> f (HashMap Text Aeson.Value)
@@ -98,15 +109,19 @@ withField name f (Field alias name' _ _ _) =
      where
        aliasOrName = if T.null alias then name' else alias
 
+-- |
 resolvers :: Alternative f => [Resolver f] -> [Field] -> f Aeson.Value
 resolvers resolvs =
     fmap (Aeson.toJSON . fold)
   . traverse (\fld -> getAlt $ foldMap (Alt . ($ fld)) resolvs)
 
+-- | Checks whether the given selection contains a field and
+--   returns the field if so, else returns Nothing
 field :: Selection -> Maybe Field
 field (SelectionField x) = Just x
 field _ = Nothing
 
+-- | Returns a list of the fields contained in the given selection set
 fields :: SelectionSet -> [Field]
 fields = catMaybes . fmap field
 
