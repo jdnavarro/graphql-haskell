@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
--- | The module Data.GraphQL.Parser defines a parser
+-- | This module defines a parser
 --   for GraphQl request documents.
 module Data.GraphQL.Parser where
 

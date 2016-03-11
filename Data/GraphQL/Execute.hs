@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
--- | The module Data.GraphQL.Execute provides
+-- | This module provides
 --   a the function execute which executes a GraphQL
 --   request according to a given GraphQL schema.
 module Data.GraphQL.Execute (execute) where

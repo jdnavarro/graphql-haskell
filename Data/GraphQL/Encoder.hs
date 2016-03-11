@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
--- | The module Data.GraphQL.Encoder defines a printer
+-- | This module defines a printer
 --   for the GraphQL language.
 module Data.GraphQL.Encoder where
 

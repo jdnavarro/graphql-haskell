@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
--- | The module Data.GraphQL.Schema provides the type Schema,
+-- | This module provides the type Schema,
 --   representing a GraphQL schema, and functions for defining
 --   a schema.
 module Data.GraphQL.Schema
