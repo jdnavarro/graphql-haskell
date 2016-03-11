@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 module Data.GraphQL.Schema
   ( Schema(..)
@@ -28,7 +29,7 @@ import Data.Monoid (Monoid(mempty,mappend))
 #else
 import Data.Monoid (Alt(Alt,getAlt))
 #endif
-import Control.Applicative (Alternative, empty)
+import Control.Applicative (Alternative(..))
 import Data.Maybe (catMaybes)
 import Data.Foldable (fold)
 
@@ -36,13 +37,16 @@ import qualified Data.Aeson as Aeson
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import Data.Text (Text)
-import qualified Data.Text as T (null)
+import qualified Data.Text as T (null, unwords)
+
+import Control.Arrow
 
 import Data.GraphQL.AST
+import Data.GraphQL.Error
 
 data Schema f = Schema [Resolver f]
 
-type Resolver  f = Field -> f Aeson.Object
+type Resolver f = Field -> CollectErrsT f Aeson.Object
 
 type Subs = Text -> Maybe Text
 
@@ -65,7 +69,7 @@ scalar name s = scalarA name $ \case
 scalarA
   :: (Alternative f, Aeson.ToJSON a)
   => Text -> ([Argument] -> f a) -> Resolver f
-scalarA name f fld@(Field _ _ args _ []) = withField name (f args) fld
+scalarA name f fld@(Field _ _ args _ []) = withField name (errWrap $ f args) fld
 scalarA _ _ _ = empty
 
 array :: Alternative f => Text -> [[Resolver f]] -> Resolver f
@@ -77,7 +81,7 @@ arrayA
   :: Alternative f
   => Text -> ([Argument] -> [[Resolver f]]) -> Resolver f
 arrayA name f fld@(Field _ _ args _ sels) =
-     withField name (traverse (flip resolvers $ fields sels) $ f args) fld
+     withField name (joinErrs $ traverse (flip resolvers $ fields sels) $ f args) fld
 
 enum :: Alternative f => Text -> f [Text] -> Resolver f
 enum name enums = enumA name $ \case
@@ -85,23 +89,27 @@ enum name enums = enumA name $ \case
      _  -> empty
 
 enumA :: Alternative f => Text -> ([Argument] -> f [Text]) -> Resolver f
-enumA name f fld@(Field _ _ args _ []) = withField name (f args) fld
+enumA name f fld@(Field _ _ args _ []) = withField name (errWrap $ f args) fld
 enumA _ _ _ = empty
 
 withField
   :: (Alternative f, Aeson.ToJSON a)
-  => Text -> f a -> Field -> f (HashMap Text Aeson.Value)
+  => Text -> CollectErrsT f a -> Field -> CollectErrsT f (HashMap Text Aeson.Value)
 withField name f (Field alias name' _ _ _) =
      if name == name'
-        then fmap (HashMap.singleton aliasOrName . Aeson.toJSON) f
+        then fmap (first $ HashMap.singleton aliasOrName . Aeson.toJSON) f
         else empty
      where
        aliasOrName = if T.null alias then name' else alias
 
-resolvers :: Alternative f => [Resolver f] -> [Field] -> f Aeson.Value
+resolvers :: Alternative f => [Resolver f] -> [Field] -> CollectErrsT f Aeson.Value
 resolvers resolvs =
-    fmap (Aeson.toJSON . fold)
-  . traverse (\fld -> getAlt $ foldMap (Alt . ($ fld)) resolvs)
+    fmap (first Aeson.toJSON . fold)
+  . traverse (\fld -> (getAlt $ foldMap (Alt . ($ fld)) resolvs) <|> errmsg fld)
+    where errmsg (Field alias name _ _ _) = addErrMsg msg $ (errWrap . pure) val
+            where val = HashMap.singleton aliasOrName Aeson.Null
+                  msg = T.unwords ["field", name, "not resolved."]
+                  aliasOrName = if T.null alias then name else alias
 
 field :: Selection -> Maybe Field
 field (SelectionField x) = Just x
