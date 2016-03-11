@@ -19,8 +19,7 @@ import qualified Data.GraphQL.Schema as Schema
 -- | execute takes a schema, a substitution and a GraphQL document.
 --   The substition is applied to the document using rootFields, and
 --   the schema's resolvers are applied to the resulting fields.
---   Returns the list of the first non-empty resolutions
---   for each field (wrapped in an Aeson.Value).
+--   Returns the result of the query against the schema.
 execute
   :: Alternative f
   => Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
