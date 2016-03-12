@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Data.GraphQL.Execute (execute) where
 
 #if !MIN_VERSION_base(4,8,0)
@@ -13,10 +14,19 @@ import Data.GraphQL.AST
 import Data.GraphQL.Schema (Schema(..))
 import qualified Data.GraphQL.Schema as Schema
 
-execute
-  :: Alternative f
-  => Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
-execute (Schema resolvs) subs = Schema.resolvers resolvs . rootFields subs
+import Data.GraphQL.Error
+
+{- | Takes a schema, a substitution and a GraphQL document.
+     The substition is applied to the document using rootFields, and
+     the schema's resolvers are applied to the resulting fields.
+     Returns the result of the query against the schema wrapped in a
+     "data" field, or errors wrapped in a "errors field".
+-}
+execute :: Alternative m
+  => Schema.Schema m -> Schema.Subs -> Document -> m Aeson.Value
+execute (Schema resolvs) subs doc = runCollectErrs res
+  where res = Schema.resolvers resolvs $ rootFields subs doc
+
 
 rootFields :: Schema.Subs -> Document -> [Field]
 rootFields subs (Document [DefinitionOperation (Query (Node _varDefs _ _ sels))]) =
