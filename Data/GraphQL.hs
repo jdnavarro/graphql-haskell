@@ -1,7 +1,5 @@
 module Data.GraphQL where
 
-import Control.Applicative (Alternative, empty)
-
 import Data.Text (Text)
 
 import qualified Data.Aeson as Aeson
@@ -12,12 +10,13 @@ import Data.GraphQL.Parser
 import Data.GraphQL.Schema
 
 import Data.GraphQL.Error
+import Control.Monad (MonadPlus)
 
-graphql :: (Alternative m, Monad m) => Schema m -> Text -> m Aeson.Value
+graphql :: (MonadPlus m, Monad m) => Schema m -> Text -> m Aeson.Value
 graphql = flip graphqlSubs $ const Nothing
 
 
-graphqlSubs :: (Alternative m, Monad m) => Schema m -> Subs -> Text -> m Aeson.Value
+graphqlSubs :: (MonadPlus m, Monad m) => Schema m -> Subs -> Text -> m Aeson.Value
 graphqlSubs schema f =
     either parseError (execute schema f)
   . Attoparsec.parseOnly document

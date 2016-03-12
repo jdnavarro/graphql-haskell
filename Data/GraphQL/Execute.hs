@@ -5,7 +5,6 @@ module Data.GraphQL.Execute (execute) where
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
 #endif
-import Control.Applicative (Alternative, (<|>))
 import Data.Maybe (catMaybes)
 
 import qualified Data.Aeson as Aeson
@@ -14,12 +13,9 @@ import Data.GraphQL.AST
 import Data.GraphQL.Schema (Schema(..))
 import qualified Data.GraphQL.Schema as Schema
 
-import Data.GraphQL.Encoder (document)
+import Control.Monad
 
 import Data.GraphQL.Error
-
-import Debug.Trace
-
 
 {- | Takes a schema, a substitution and a GraphQL document.
      The substition is applied to the document using rootFields, and
@@ -27,15 +23,11 @@ import Debug.Trace
      Returns the result of the query against the schema wrapped in a
      "data" field, or errors wrapped in a "errors field".
 -}
-execute
-  :: Alternative f
-  => Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
-execute schema@(Schema resolvs) subs doc =
-  res <|> errmsg
-  where
-    res = queryData $  Schema.resolvers resolvs $ rootFields subs $ traceShowId doc
-    errmsg = queryError schema subs doc
-    queryData = fmap (\d -> Aeson.object [("data",d)])
+execute :: MonadPlus m
+  => Schema.Schema m -> Schema.Subs -> Document -> m Aeson.Value
+execute (Schema resolvs) subs doc = runCollectErrs res
+  where res = Schema.resolvers resolvs $ rootFields subs doc
+
 
 rootFields :: Schema.Subs -> Document -> [Field]
 rootFields subs (Document [DefinitionOperation (Query (Node _varDefs _ _ sels))]) =

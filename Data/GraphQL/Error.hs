@@ -1,35 +1,58 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Data.GraphQL.Error (
-  queryError,
-  parseError
+  parseError,
+  CollectErrsT,
+  addErr,
+  addErrMsg,
+  runCollectErrs,
+  runAppendErrs,
+  lift
   ) where
 
-import Prelude hiding (error)
-
-import Control.Applicative (Alternative, pure)
-
 import qualified Data.Aeson as Aeson
-import Data.Text
+import Data.Text (Text, pack)
 
-import Data.GraphQL.AST
-import Data.GraphQL.Schema (Schema(..))
-import qualified Data.GraphQL.Schema as Schema
+import Control.Monad.State (StateT, lift, modify, runStateT)
 
-import Data.GraphQL.Encoder (document)
+parseError :: Applicative m => String -> m Aeson.Value
+parseError s =
+  pure $ Aeson.object [("errors", Aeson.toJSON [makeErrorMsg $ pack s])]
 
-import Debug.Trace
+type CollectErrsT m = StateT [Aeson.Value] m
 
-{- | queryError is called when the schema returns no data,
-     and returns an error message.
--}
-queryError ::
-  Alternative f =>
-  Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
-queryError schema@(Schema resolvs) subs doc =
-  pure $  Aeson.object [("errors", Aeson.String errs )]
-  where errs = document $ traceShowId doc
+runCollectErrsT :: Monad m
+                   => CollectErrsT m a
+                   -> [Aeson.Value] -> m (a, [Aeson.Value])
+runCollectErrsT = runStateT
 
+-- | Adds an error to the list of errors.
+addErr :: Monad m => Aeson.Value -> CollectErrsT m ()
+addErr v = modify (v :)
 
-parseError :: (Alternative m, Monad m) => String -> m Aeson.Value
-parseError s = pure $ Aeson.object [("errors", Aeson.toJSON [Aeson.object [("message", Aeson.toJSON s)]])]
+makeErrorMsg :: Text -> Aeson.Value
+makeErrorMsg s = Aeson.object [("message",Aeson.toJSON s)]
+
+-- | Convenience function for just wrapping an error message.
+addErrMsg :: Monad m => Text -> CollectErrsT m ()
+addErrMsg = addErr . makeErrorMsg
+
+-- | Appends the given list of errors to the current list of errors.
+appendErrs :: Monad m => [Aeson.Value] -> CollectErrsT m ()
+appendErrs errs = modify (errs ++)
+
+-- | Runs the given query computation, but collects the errors into an error
+--  list, which is then sent back with the data.
+runCollectErrs :: Monad m => CollectErrsT m Aeson.Value -> m (Aeson.Value)
+runCollectErrs res = do
+  (dat,errs) <- runCollectErrsT res []
+  if null errs
+    then return $ Aeson.object [("data",dat)]
+    else return $ Aeson.object [("data",dat),("errors",Aeson.toJSON $ reverse errs)]
+
+-- | Runs the given computation, collecting the errors and appending them
+--   to the previous list of error.
+runAppendErrs :: Monad m => CollectErrsT m a -> CollectErrsT m a
+runAppendErrs f = do
+  (v, errs) <- lift $ runCollectErrsT f []
+  appendErrs errs
+  return v
