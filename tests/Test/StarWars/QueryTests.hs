@@ -2,7 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Test.StarWars.QueryTests (test) where
 
-import qualified Data.Aeson as Aeson (Value,Value(Null), toJSON)
+import qualified Data.Aeson as Aeson (Value(Null), toJSON)
 import Data.Aeson (object, (.=))
 import Data.Text (Text)
 import Text.RawString.QQ (r)

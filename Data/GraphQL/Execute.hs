@@ -5,6 +5,7 @@ module Data.GraphQL.Execute (execute) where
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
 #endif
+import Control.Applicative (Alternative)
 import Data.Maybe (catMaybes)
 
 import qualified Data.Aeson as Aeson
@@ -12,8 +13,6 @@ import qualified Data.Aeson as Aeson
 import Data.GraphQL.AST
 import Data.GraphQL.Schema (Schema(..))
 import qualified Data.GraphQL.Schema as Schema
-
-import Control.Monad
 
 import Data.GraphQL.Error
 
@@ -23,7 +22,7 @@ import Data.GraphQL.Error
      Returns the result of the query against the schema wrapped in a
      "data" field, or errors wrapped in a "errors field".
 -}
-execute :: MonadPlus m
+execute :: Alternative m
   => Schema.Schema m -> Schema.Subs -> Document -> m Aeson.Value
 execute (Schema resolvs) subs doc = runCollectErrs res
   where res = Schema.resolvers resolvs $ rootFields subs doc
