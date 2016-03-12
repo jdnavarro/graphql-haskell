@@ -222,5 +222,5 @@ testQuery q expected = graphql schema q @?= Just expected
 testQueryParams :: Subs -> Text -> Aeson.Value -> Assertion
 testQueryParams f q expected = graphqlSubs schema f q @?= Just expected
 
-testFailParams :: Subs -> Text -> Assertion
-testFailParams f q = graphqlSubs schema f q @?= Nothing
+-- testFailParams :: Subs -> Text -> Assertion
+-- testFailParams f q = graphqlSubs schema f q @?= Nothing
