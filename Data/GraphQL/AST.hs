@@ -1,3 +1,8 @@
+{- | This module defines an
+     abstract syntax tree for the GraphQL language, based on
+     <https://facebook.github.io/graphql/ Facebook's GraphQL Specification>.
+-}
+
 module Data.GraphQL.AST where
 
 import Data.Int (Int32)
@@ -39,11 +44,33 @@ data Selection = SelectionField Field
                | SelectionInlineFragment InlineFragment
                  deriving (Eq,Show)
 
+{- | <https://facebook.github.io/graphql/#sec-Language.Query-Document.Fields Field Specification>
+
+     A selection set is primarily composed of fields.
+     A field describes one discrete piece of information
+     available to request within a selection set.
+
+     Some fields describe complex data or relationships to other data.
+     In order to further explore this data, a field may itself contain
+     a selection set, allowing for deeply nested requests.
+     All GraphQL operations must specify their selections down to
+     fields which return scalar values to ensure an unambiguously
+     shaped response.
+
+-}
 data Field = Field Alias Name [Argument] [Directive] SelectionSet
              deriving (Eq,Show)
 
 type Alias = Name
 
+{- | <https://facebook.github.io/graphql/#sec-Language.Query-Document.Arguments Argument Specification>
+
+     Fields are conceptually functions which return values,
+     and occasionally accept arguments which alter their behavior.
+     These arguments often map directly to function arguments within a
+     GraphQL server’s implementation.
+
+-}
 data Argument = Argument Name Value deriving (Eq,Show)
 
 -- * Fragments
@@ -63,6 +90,18 @@ type TypeCondition = NamedType
 
 -- * Values
 
+{- | <https://facebook.github.io/graphql/#sec-Input-Values Input Value Specification>
+
+    Field and directive arguments accept input values
+    of various literal primitives; input values can be scalars,
+    enumeration values, lists, or input objects.
+
+    If not defined as constant (for example, in DefaultValue),
+    input values can be specified as a variable.
+    List and inputs objects may also contain
+    variables (unless defined to be constant).
+
+-}
 data Value = ValueVariable Variable
            | ValueInt Int32
            -- GraphQL Float is double precison
