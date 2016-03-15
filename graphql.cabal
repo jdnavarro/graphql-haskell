@@ -16,6 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 tested-with:         GHC == 7.8.4, GHC == 7.10.3
 extra-source-files:  README.md CHANGELOG.md stack.yaml
+                     docs/tutorial/tutorial.lhs
 data-files:          tests/data/*.graphql
                      tests/data/*.min.graphql
 
@@ -28,10 +29,11 @@ library
                        Data.GraphQL.Execute
                        Data.GraphQL.Schema
                        Data.GraphQL.Parser
-  build-depends:       base >= 4.7 && < 5,
-                       text >= 0.11.3.1,
-                       aeson >= 0.7.0.3,
+                       Data.GraphQL.Error
+  build-depends:       aeson >= 0.7.0.3,
                        attoparsec >= 0.10.4.0,
+                       base >= 4.7 && < 5,
+                       text >= 0.11.3.1,
                        unordered-containers >= 0.2.5.0
 
 test-suite tasty
@@ -44,15 +46,15 @@ test-suite tasty
                        Test.StarWars.Data
                        Test.StarWars.Schema
                        Test.StarWars.QueryTests
-  build-depends:       base >= 4.6 && <5,
-                       aeson >= 0.7.0.3,
-                       text >= 0.11.3.1,
+  build-depends:       aeson >= 0.7.0.3,
                        attoparsec >= 0.10.4.0,
+                       base >= 4.6 && <5,
+                       graphql,
                        raw-strings-qq >= 1.1,
                        tasty >= 0.10,
                        tasty-hunit >= 0.9,
-                       unordered-containers >= 0.2.5.0,
-                       graphql
+                       text >= 0.11.3.1,
+                       unordered-containers >= 0.2.5.0
 
 source-repository head
   type:     git

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>GraphQL Haskell Tutorial</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #0000ff; } /* Keyword */
+code > span.ch { color: #008080; } /* Char */
+code > span.st { color: #008080; } /* String */
+code > span.co { color: #008000; } /* Comment */
+code > span.ot { color: #ff4000; } /* Other */
+code > span.al { color: #ff0000; } /* Alert */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #008000; font-weight: bold; } /* Warning */
+code > span.cn { } /* Constant */
+code > span.sc { color: #008080; } /* SpecialChar */
+code > span.vs { color: #008080; } /* VerbatimString */
+code > span.ss { color: #008080; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #0000ff; } /* ControlFlow */
+code > span.op { } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ff4000; } /* Preprocessor */
+code > span.do { color: #008000; } /* Documentation */
+code > span.an { color: #008000; } /* Annotation */
+code > span.cv { color: #008000; } /* CommentVar */
+code > span.at { } /* Attribute */
+code > span.in { color: #008000; } /* Information */
+  </style>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <link rel="stylesheet" href="tutorial.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">GraphQL Haskell Tutorial</h1>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#getting-started">Getting started</a><ul>
+<li><a href="#first-example">First example</a></li>
+<li><a href="#monadic-actions">Monadic actions</a></li>
+<li><a href="#errors">Errors</a></li>
+<li><a href="#combining-resolvers">Combining resolvers</a></li>
+</ul></li>
+<li><a href="#further-examples">Further examples</a></li>
+</ul>
+</nav>
+<section id="getting-started" class="level2">
+<h2>Getting started</h2>
+<p>Welcome to graphql-haskell!</p>
+<p>We have written a small tutorial to help you (and ourselves) understand the graphql package.</p>
+<p>Since this file is a literate haskell file, we start by importing some dependencies.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
+<span class="ot">{-# LANGUAGE LambdaCase #-}</span>
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import </span><span class="dt">Prelude</span> <span class="kw">hiding</span> (empty, putStrLn)
+<span class="kw">import </span><span class="dt">Data.GraphQL</span>
+<span class="kw">import </span><span class="dt">Data.GraphQL.Schema</span>
+<span class="kw">import qualified</span> <span class="dt">Data.GraphQL.Schema</span> <span class="kw">as</span> <span class="dt">Schema</span>
+
+<span class="kw">import </span><span class="dt">Control.Applicative</span>
+<span class="kw">import </span><span class="dt">Data.Text</span> <span class="kw">hiding</span> (empty)
+<span class="kw">import </span><span class="dt">Data.Aeson</span>
+<span class="kw">import </span><span class="dt">Data.ByteString.Lazy.Char8</span> (putStrLn)
+
+<span class="kw">import </span><span class="dt">Data.Time</span>
+
+<span class="kw">import </span><span class="dt">Debug.Trace</span></code></pre></div>
+<section id="first-example" class="level3">
+<h3>First example</h3>
+<p>Now, as our first example, we are going to look at the example from <a href="https://github.com/graphql/graphql-js">graphql.js</a>.</p>
+<p>First we build a GraphQL schema.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema1 ::</span> <span class="dt">Alternative</span> f <span class="ot">=&gt;</span> <span class="dt">Schema</span> f
+schema1 <span class="fu">=</span> <span class="dt">Schema</span> [hello]
+
+<span class="ot">hello ::</span> <span class="dt">Alternative</span> f <span class="ot">=&gt;</span> <span class="dt">Resolver</span> f
+hello <span class="fu">=</span> Schema.scalar <span class="st">&quot;hello&quot;</span> (<span class="st">&quot;it&#39;s me&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span>)</code></pre></div>
+<p>This defines a simple schema with one type and one field, that resolves to a fixed value.</p>
+<p>Next we define our query.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">query1 ::</span> <span class="dt">Text</span>
+query1 <span class="fu">=</span> <span class="st">&quot;{ hello }&quot;</span></code></pre></div>
+<p>To run the query, we call the <code>graphql</code> with the schema and the query.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">main1 ::</span> <span class="dt">IO</span> ()
+main1 <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> encode <span class="fu">&lt;$&gt;</span> graphql schema1 query1</code></pre></div>
+<p>This runs the query by fetching the one field defined, returning</p>
+<p><code>{&quot;data&quot; : {&quot;hello&quot;:&quot;it's me&quot;}}</code></p>
+</section>
+<section id="monadic-actions" class="level3">
+<h3>Monadic actions</h3>
+<p>For this example, we’re going to be using time.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema2 ::</span> <span class="dt">Schema</span> <span class="dt">IO</span>
+schema2 <span class="fu">=</span> <span class="dt">Schema</span> [time]
+
+<span class="ot">time ::</span> <span class="dt">Resolver</span> <span class="dt">IO</span>
+time <span class="fu">=</span> Schema.scalarA <span class="st">&quot;time&quot;</span> <span class="fu">$</span> \<span class="kw">case</span>
+  [] <span class="ot">-&gt;</span> <span class="kw">do</span> t <span class="ot">&lt;-</span> getCurrentTime
+           return <span class="fu">$</span> show t
+  _  <span class="ot">-&gt;</span> empty</code></pre></div>
+<p>This defines a simple schema with one type and one field, which resolves to the current time.</p>
+<p>Next we define our query.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">query2 ::</span> <span class="dt">Text</span>
+query2 <span class="fu">=</span> <span class="st">&quot;{ time }&quot;</span>
+
+<span class="ot">main2 ::</span> <span class="dt">IO</span> ()
+main2 <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> encode <span class="fu">&lt;$&gt;</span> graphql schema2 query2</code></pre></div>
+<p>This runs the query, returning the current time</p>
+<p><code>{&quot;data&quot;: {&quot;time&quot;:&quot;2016-03-08 23:28:14.546899 UTC&quot;}}</code></p>
+</section>
+<section id="errors" class="level3">
+<h3>Errors</h3>
+<p>Errors are handled according to the spec, with fields that cause erros being resolved to <code>null</code>, and an error being added to the error list.</p>
+<p>An example of this is the following query:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">queryShouldFail ::</span> <span class="dt">Text</span>
+queryShouldFail <span class="fu">=</span> <span class="st">&quot;{ boyhowdy }&quot;</span></code></pre></div>
+<p>Since there is no <code>boyhowdy</code> field in our schema, it will not resolve, and the query will fail, as we can see in the following example.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mainShouldFail ::</span> <span class="dt">IO</span> ()
+mainShouldFail <span class="fu">=</span> <span class="kw">do</span>
+  r <span class="ot">&lt;-</span> graphql schema1 query1
+  putStrLn <span class="fu">$</span> encode r
+  putStrLn <span class="st">&quot;This will fail&quot;</span>
+  r <span class="ot">&lt;-</span> graphql schema1 queryShouldFail
+  putStrLn <span class="fu">$</span> encode r</code></pre></div>
+<p>This outputs:</p>
+<pre><code>{&quot;data&quot;: {&quot;hello&quot;: &quot;it&#39;s me&quot;}}
+This will fail
+{&quot;data&quot;: {&quot;boyhowdy&quot;: null}, &quot;errors&quot;:[{&quot;message&quot;: &quot;the field boyhowdy did not resolve.&quot;}]}</code></pre>
+</section>
+<section id="combining-resolvers" class="level3">
+<h3>Combining resolvers</h3>
+<p>Now that we have two resolvers, we can define a schema which uses them both.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema3 ::</span> <span class="dt">Schema</span> <span class="dt">IO</span>
+schema3 <span class="fu">=</span> <span class="dt">Schema</span> [hello, time]
+
+<span class="ot">query3 ::</span> <span class="dt">Text</span>
+query3 <span class="fu">=</span> <span class="st">&quot;query timeAndHello { time hello }&quot;</span>
+
+<span class="ot">main3 ::</span> <span class="dt">IO</span> ()
+main3 <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> encode <span class="fu">&lt;$&gt;</span> graphql schema3 query3</code></pre></div>
+<p>This queries for both time and hello, returning</p>
+<p><code>{ &quot;data&quot;: {&quot;hello&quot;:&quot;it's me&quot;,&quot;time&quot;:&quot;2016-03-08 23:29:11.62108 UTC&quot;}}</code></p>
+<p>Notice that we can name our queries, as we did with <code>timeAndHello</code>. Since we have only been using single queries, we can use the shorthand <code>{ time hello}</code>, as we have been doing in the previous examples.</p>
+<p>In GraphQL there can only be one operation per query.</p>
+</section>
+</section>
+<section id="further-examples" class="level2">
+<h2>Further examples</h2>
+<p>More examples on queries and a more complex schema can be found in the test directory, in the <a href="../../tests/Test/StarWars">Test.StarWars</a> module. This includes a more complex schema, and more complex queries.</p>
+</section>
+</body>
+</html>

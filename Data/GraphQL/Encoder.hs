@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | This module defines a printer for the @GraphQL@ language.
 module Data.GraphQL.Encoder where
 
 #if !MIN_VERSION_base(4,8,0)
