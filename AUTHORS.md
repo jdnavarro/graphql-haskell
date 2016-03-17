@@ -3,5 +3,5 @@ directly contributing code, by providing thoughtful input in discussions about
 the library design, or somehow else. In order of appearance:
 
 - [Danny Navarro](mailto:j@dannynavarro.net) - [@jdnavarro](https://github.com/jdnavarro)
-- Matthías Páll Gissurarson -  [@Tritlo](https://github.com/Tritlo)
-- [@solrun](https://github.com/solrun)
+- [Matthías Páll Gissurarson](mailto:mpg@mpg.is) -  [@Tritlo](https://github.com/Tritlo)
+- [Sólrún Halla Einarsdóttir](mailto:she@mpg.is) - [@solrun](https://github.com/solrun)
