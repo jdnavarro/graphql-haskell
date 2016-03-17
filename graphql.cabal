@@ -8,7 +8,7 @@ homepage:            https://github.com/jdnavarro/graphql-haskell
 bug-reports:         https://github.com/jdnavarro/graphql-haskell/issues
 license:             BSD3
 license-file:        LICENSE
-author:              Danny Navarro
+author:              Danny Navarro, Matthías Páll Gissurarson, Sólrún Halla Einarsdóttir.
 maintainer:          j@dannynavarro.net
 copyright:           Copyright (C) 2015-2016 J. Daniel Navarro
 category:            Web
