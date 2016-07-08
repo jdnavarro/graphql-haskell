@@ -18,6 +18,8 @@ import Test.StarWars.Schema
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
+
+
 test :: TestTree
 test = testGroup "Star Wars Query Tests"
   [ testGroup "Basic Queries"
@@ -45,9 +47,9 @@ test = testGroup "Star Wars Query Tests"
               "id" .= ("2001" :: Text)
             , "name" .= ("R2-D2" :: Text)
             , "friends" .= [
-                  object ["name" .= ("Luke Skywalker" :: Text)]
-                , object ["name" .= ("Han Solo" :: Text)]
-                , object ["name" .= ("Leia Organa" :: Text)]
+                  object [lukeName]
+                , object [hanName]
+                , object [leiaName]
                 ]
             ]
         ]]
@@ -75,27 +77,27 @@ test = testGroup "Star Wars Query Tests"
                       "name" .= ("Luke Skywalker" :: Text)
                     , "appearsIn" .= ["NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Han Solo" :: Text)]
-                        , object ["name" .= ("Leia Organa" :: Text)]
+                          object [hanName]
+                        , object [leiaName]
                         , object ["name" .= ("C-3PO" :: Text)]
                         , object ["name" .= ("R2-D2" :: Text)]
                         ]
                     ]
                 , object [
-                      "name" .= ("Han Solo" :: Text)
+                      hanName
                     , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Luke Skywalker" :: Text)]
-                        , object ["name" .= ("Leia Organa" :: Text)]
+                          object [lukeName]
+                        , object [leiaName]
                         , object ["name" .= ("R2-D2" :: Text)]
                         ]
                     ]
                 , object [
-                      "name" .= ("Leia Organa" :: Text)
+                      leiaName
                     , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Luke Skywalker" :: Text)]
-                        , object ["name" .= ("Han Solo" :: Text)]
+                          object [lukeName]
+                        , object [hanName]
                         , object ["name" .= ("C-3PO" :: Text)]
                         , object ["name" .= ("R2-D2" :: Text)]
                         ]
@@ -111,9 +113,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "human" .= object [
-             "name" .= ("Luke Skywalker" :: Text)
-          ]
+          "human" .= object [lukeName]
         ]
     ]]
     , testCase "Luke ID with variable" . testQueryParams
@@ -127,7 +127,7 @@ test = testGroup "Star Wars Query Tests"
              }
          |]
       $ object [ "data" .= object [
-          "human" .= object ["name" .= ("Luke Skywalker" :: Text)]
+          "human" .= object [lukeName]
         ]]
     , testCase "Han ID with variable" . testQueryParams
         (\v -> if v == "someId"
@@ -140,7 +140,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "human" .= object ["name" .= ("Han Solo" :: Text)]
+          "human" .= object [hanName]
         ]]
     , testCase "Invalid ID" . testQueryParams
         (\v -> if v == "id"
@@ -152,7 +152,7 @@ test = testGroup "Star Wars Query Tests"
               }
             }
         |] $ object ["data" .= object ["human" .= object ["name" .= Aeson.Null]],
-                     "errors" .= (Aeson.toJSON [object ["message" .= ("field name not resolved." :: Text)]])]
+                     "errors" .= Aeson.toJSON [object ["message" .= ("field name not resolved." :: Text)]]]
         -- TODO: This test is directly ported from `graphql-js`, however do we want
         -- to mimic the same behavior? Is this part of the spec? Once proper
         -- exceptions are implemented this test might no longer be meaningful.
@@ -167,9 +167,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-         "luke" .= object [
-           "name" .= ("Luke Skywalker" :: Text)
-           ]
+         "luke" .= object [lukeName]
         ]]
     , testCase "R2-D2 ID and friends aliased" . testQuery
         [r| query HeroNameAndFriendsQuery {
@@ -204,14 +202,52 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "luke" .= object [
-            "name" .= ("Luke Skywalker" :: Text)
-           ]
-        , "leia" .= object [
-            "name" .= ("Leia Organa" :: Text)
-           ]
+          "luke" .= object [lukeName]
+        , "leia" .= object [leiaName]
         ]]
+  , testGroup "Fragments for complex queries"
+    [  testCase "Aliases to query for duplicate content" . testQuery
+        [r| query DuplicateFields {
+              luke: human(id: "1000") {
+                name
+                homePlanet
+              }
+              leia: human(id: "1003") {
+                name
+                homePlanet
+              }
+            }
+        |]
+      $ object [ "data" .= object [
+          "luke" .= object [lukeName, tatooine]
+        , "leia" .= object [leiaName, alderaan]
+        ]]
+    ,  testCase "Fragment for duplicate content" . testQuery
+        [r|  query UseFragment {
+              luke: human(id: "1000") {
+                ...HumanFragment
+              }
+              leia: human(id: "1003") {
+                ...HumanFragment
+              }
+            }
+            fragment HumanFragment on Human {
+              name
+              homePlanet
+            }
+        |]
+      $ object [ "data" .= object [
+          "luke" .= object [lukeName, tatooine]
+        , "leia" .= object [leiaName, alderaan]
+        ]]
+    ]
   ]
+  where
+    lukeName = "name" .= ("Luke Skywalker" :: Text)
+    leiaName = "name" .= ("Leia Organa" :: Text)
+    hanName = "name" .= ("Han Solo" :: Text)
+    tatooine = "homePlanet" .= ("Tatooine" :: Text)
+    alderaan = "homePlanet" .= ("Alderaan" :: Text)
 
 testQuery :: Text -> Aeson.Value -> Assertion
 testQuery q expected = graphql schema q @?= Just expected
