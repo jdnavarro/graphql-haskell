@@ -45,7 +45,7 @@ test = testGroup "Star Wars Query Tests"
       $ object [ "data" .= object [
           "hero" .= object [
               "id" .= ("2001" :: Text)
-            , "name" .= ("R2-D2" :: Text)
+            , r2d2Name
             , "friends" .= [
                   object [lukeName]
                 , object [hanName]
@@ -79,8 +79,8 @@ test = testGroup "Star Wars Query Tests"
                     , "friends" .= [
                           object [hanName]
                         , object [leiaName]
-                        , object ["name" .= ("C-3PO" :: Text)]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                        , object [c3poName]
+                        , object [r2d2Name]
                         ]
                     ]
                 , object [
@@ -89,7 +89,7 @@ test = testGroup "Star Wars Query Tests"
                     , "friends" .= [
                           object [lukeName]
                         , object [leiaName]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                        , object [r2d2Name]
                         ]
                     ]
                 , object [
@@ -98,8 +98,8 @@ test = testGroup "Star Wars Query Tests"
                     , "friends" .= [
                           object [lukeName]
                         , object [hanName]
-                        , object ["name" .= ("C-3PO" :: Text)]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                        , object [c3poName]
+                        , object [r2d2Name]
                         ]
                     ]
                 ]
@@ -183,7 +183,7 @@ test = testGroup "Star Wars Query Tests"
       $ object [ "data" .= object [
           "hero" .= object [
               "id" .= ("2001" :: Text)
-            , "name" .= ("R2-D2" :: Text)
+            , r2d2Name
             , "friends" .= [
                   object ["friendName" .= ("Luke Skywalker" :: Text)]
                 , object ["friendName" .= ("Han Solo" :: Text)]
@@ -241,11 +241,37 @@ test = testGroup "Star Wars Query Tests"
         , "leia" .= object [leiaName, alderaan]
         ]]
     ]
+  , testGroup "__typename"
+    [  testCase "R2D2 is a Droid" . testQuery
+        [r| query CheckTypeOfR2 {
+              hero {
+                __typename
+                name
+              }
+            }
+          |]
+    $ object ["data" .= object [
+        "hero" .= ["__typename" .= ("Droid" :: Text), r2d2Name]
+      ]]
+    , testCase "Luke is a human" . testQuery
+        [r| query CheckTypeOfLuke {
+              hero(episode: EMPIRE) {
+                __typename
+                name
+              }
+            }
+          |]
+    $ object ["data" .= object [
+        "hero" .= ["__typename" .= ("Human" :: Text), lukeName]
+      ]]
+    ]
   ]
   where
     lukeName = "name" .= ("Luke Skywalker" :: Text)
     leiaName = "name" .= ("Leia Organa" :: Text)
     hanName = "name" .= ("Han Solo" :: Text)
+    r2d2Name = "name" .= ("R2-D2" :: Text)
+    c3poName = "name" .= ("C-3PO" :: Text)
     tatooine = "homePlanet" .= ("Tatooine" :: Text)
     alderaan = "homePlanet" .= ("Alderaan" :: Text)
 
