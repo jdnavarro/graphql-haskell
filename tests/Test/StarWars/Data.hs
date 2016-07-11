@@ -56,6 +56,9 @@ appearsIn :: Character -> [Int]
 appearsIn (Left  x) = _appearsIn . _droidChar $ x
 appearsIn (Right x) = _appearsIn . _humanChar $ x
 
+secretBackstory :: Character -> Text
+secretBackstory = error "secretBackstory is secret."
+
 luke :: Character
 luke = Right luke'
 

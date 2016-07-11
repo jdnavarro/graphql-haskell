@@ -18,6 +18,8 @@ import Test.StarWars.Schema
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
+
+
 test :: TestTree
 test = testGroup "Star Wars Query Tests"
   [ testGroup "Basic Queries"
@@ -43,11 +45,11 @@ test = testGroup "Star Wars Query Tests"
       $ object [ "data" .= object [
           "hero" .= object [
               "id" .= ("2001" :: Text)
-            , "name" .= ("R2-D2" :: Text)
+            , r2d2Name
             , "friends" .= [
-                  object ["name" .= ("Luke Skywalker" :: Text)]
-                , object ["name" .= ("Han Solo" :: Text)]
-                , object ["name" .= ("Leia Organa" :: Text)]
+                  object [lukeName]
+                , object [hanName]
+                , object [leiaName]
                 ]
             ]
         ]]
@@ -75,29 +77,29 @@ test = testGroup "Star Wars Query Tests"
                       "name" .= ("Luke Skywalker" :: Text)
                     , "appearsIn" .= ["NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Han Solo" :: Text)]
-                        , object ["name" .= ("Leia Organa" :: Text)]
-                        , object ["name" .= ("C-3PO" :: Text)]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                          object [hanName]
+                        , object [leiaName]
+                        , object [c3poName]
+                        , object [r2d2Name]
                         ]
                     ]
                 , object [
-                      "name" .= ("Han Solo" :: Text)
+                      hanName
                     , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Luke Skywalker" :: Text)]
-                        , object ["name" .= ("Leia Organa" :: Text)]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                          object [lukeName]
+                        , object [leiaName]
+                        , object [r2d2Name]
                         ]
                     ]
                 , object [
-                      "name" .= ("Leia Organa" :: Text)
+                      leiaName
                     , "appearsIn" .= [ "NEWHOPE","EMPIRE","JEDI" :: Text]
                     , "friends" .= [
-                          object ["name" .= ("Luke Skywalker" :: Text)]
-                        , object ["name" .= ("Han Solo" :: Text)]
-                        , object ["name" .= ("C-3PO" :: Text)]
-                        , object ["name" .= ("R2-D2" :: Text)]
+                          object [lukeName]
+                        , object [hanName]
+                        , object [c3poName]
+                        , object [r2d2Name]
                         ]
                     ]
                 ]
@@ -111,9 +113,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "human" .= object [
-             "name" .= ("Luke Skywalker" :: Text)
-          ]
+          "human" .= object [lukeName]
         ]
     ]]
     , testCase "Luke ID with variable" . testQueryParams
@@ -127,7 +127,7 @@ test = testGroup "Star Wars Query Tests"
              }
          |]
       $ object [ "data" .= object [
-          "human" .= object ["name" .= ("Luke Skywalker" :: Text)]
+          "human" .= object [lukeName]
         ]]
     , testCase "Han ID with variable" . testQueryParams
         (\v -> if v == "someId"
@@ -140,7 +140,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "human" .= object ["name" .= ("Han Solo" :: Text)]
+          "human" .= object [hanName]
         ]]
     , testCase "Invalid ID" . testQueryParams
         (\v -> if v == "id"
@@ -152,7 +152,7 @@ test = testGroup "Star Wars Query Tests"
               }
             }
         |] $ object ["data" .= object ["human" .= object ["name" .= Aeson.Null]],
-                     "errors" .= (Aeson.toJSON [object ["message" .= ("field name not resolved." :: Text)]])]
+                     "errors" .= Aeson.toJSON [object ["message" .= ("field name not resolved." :: Text)]]]
         -- TODO: This test is directly ported from `graphql-js`, however do we want
         -- to mimic the same behavior? Is this part of the spec? Once proper
         -- exceptions are implemented this test might no longer be meaningful.
@@ -167,9 +167,7 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-         "luke" .= object [
-           "name" .= ("Luke Skywalker" :: Text)
-           ]
+         "luke" .= object [lukeName]
         ]]
     , testCase "R2-D2 ID and friends aliased" . testQuery
         [r| query HeroNameAndFriendsQuery {
@@ -185,7 +183,7 @@ test = testGroup "Star Wars Query Tests"
       $ object [ "data" .= object [
           "hero" .= object [
               "id" .= ("2001" :: Text)
-            , "name" .= ("R2-D2" :: Text)
+            , r2d2Name
             , "friends" .= [
                   object ["friendName" .= ("Luke Skywalker" :: Text)]
                 , object ["friendName" .= ("Han Solo" :: Text)]
@@ -204,14 +202,135 @@ test = testGroup "Star Wars Query Tests"
             }
         |]
       $ object [ "data" .= object [
-          "luke" .= object [
-            "name" .= ("Luke Skywalker" :: Text)
-           ]
-        , "leia" .= object [
-            "name" .= ("Leia Organa" :: Text)
-           ]
+          "luke" .= object [lukeName]
+        , "leia" .= object [leiaName]
         ]]
+  , testGroup "Fragments for complex queries"
+    [  testCase "Aliases to query for duplicate content" . testQuery
+        [r| query DuplicateFields {
+              luke: human(id: "1000") {
+                name
+                homePlanet
+              }
+              leia: human(id: "1003") {
+                name
+                homePlanet
+              }
+            }
+        |]
+      $ object [ "data" .= object [
+          "luke" .= object [lukeName, tatooine]
+        , "leia" .= object [leiaName, alderaan]
+        ]]
+    ,  testCase "Fragment for duplicate content" . testQuery
+        [r|  query UseFragment {
+              luke: human(id: "1000") {
+                ...HumanFragment
+              }
+              leia: human(id: "1003") {
+                ...HumanFragment
+              }
+            }
+            fragment HumanFragment on Human {
+              name
+              homePlanet
+            }
+        |]
+      $ object [ "data" .= object [
+          "luke" .= object [lukeName, tatooine]
+        , "leia" .= object [leiaName, alderaan]
+        ]]
+    ]
+  , testGroup "__typename"
+    [  testCase "R2D2 is a Droid" . testQuery
+        [r| query CheckTypeOfR2 {
+              hero {
+                __typename
+                name
+              }
+            }
+          |]
+    $ object ["data" .= object [
+        "hero" .= ["__typename" .= ("Droid" :: Text), r2d2Name]
+      ]]
+    , testCase "Luke is a human" . testQuery
+        [r| query CheckTypeOfLuke {
+              hero(episode: EMPIRE) {
+                __typename
+                name
+              }
+            }
+          |]
+    $ object ["data" .= object [
+        "hero" .= ["__typename" .= ("Human" :: Text), lukeName]
+      ]]
+    ]
+    , testGroup "Errors in resolvers"
+      [  testCase "error on secretBackstory" . testQuery
+          [r| query HeroNameQuery {
+                hero {
+                  name
+                  secretBackstory
+                }
+              }
+            |]
+      $ object ["data" .= object [
+          "hero" .= [r2d2Name, secretBackstory]
+        ]
+        , "errors" .= object [
+            "message" .= Aeson.toJSON [secretText]
+          , "path" .= Aeson.toJSON [[ "hero" :: Text, "secretBackstory" :: Text ]]
+        ]]
+      , testCase "Error in a list" . testQuery
+          [r| query HeroNameQuery {
+                hero {
+                  name
+                  friends {
+                    name
+                    secretBackstory
+                  }
+                }
+              }
+            |]
+      $ object ["data" .= object [
+          "hero" .= [r2d2Name, "friends" .= [
+              object [lukeName, secretBackstory]
+          , object [hanName, secretBackstory]
+          , object [leiaName, secretBackstory]
+          ]]
+        ]
+        , "errors" .= object [
+            "message" .= Aeson.toJSON [secretText, secretText, secretText]
+          , "path" .= Aeson.toJSON [secretPath 0, secretPath 1, secretPath 2]
+        ]]
+      , testCase "error on secretBackstory with alias" . testQuery
+          [r| query HeroNameQuery {
+                mainHero: hero {
+                  name
+                  story: secretBackstory
+                }
+              }
+            |]
+      $ object ["data" .= object [
+          "mainHero" .= [r2d2Name, "story" .= ()]
+        ]
+        , "errors" .= object [
+            "message" .= Aeson.toJSON [secretText]
+          , "path" .= Aeson.toJSON [[ "mainHero" :: Text, "story" :: Text ]]
+        ]]
+      ]
   ]
+  where
+    lukeName = "name" .= ("Luke Skywalker" :: Text)
+    leiaName = "name" .= ("Leia Organa" :: Text)
+    hanName = "name" .= ("Han Solo" :: Text)
+    r2d2Name = "name" .= ("R2-D2" :: Text)
+    c3poName = "name" .= ("C-3PO" :: Text)
+    tatooine = "homePlanet" .= ("Tatooine" :: Text)
+    alderaan = "homePlanet" .= ("Alderaan" :: Text)
+    secretBackstory = "secretBackstory" .= ()
+    secretText = "secretBackstory is secret" :: Text
+    secretPath n = ("hero", "friends", n, "secretBackstory") :: (Text, Text, Int, Text)
 
 testQuery :: Text -> Aeson.Value -> Assertion
 testQuery q expected = graphql schema q @?= Just expected
