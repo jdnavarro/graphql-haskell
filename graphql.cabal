@@ -27,6 +27,7 @@ library
                        Data.GraphQL.AST
                        Data.GraphQL.Encoder
                        Data.GraphQL.Execute
+                       Data.GraphQL.ServantSchema
                        Data.GraphQL.Schema
                        Data.GraphQL.Parser
                        Data.GraphQL.Error
