@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Data.GraphQL.Error (
   parseError,
@@ -14,12 +13,6 @@ import qualified Data.Aeson as Aeson
 import Data.Text (Text, pack)
 
 import Control.Arrow ((&&&))
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative, pure)
-import Data.Foldable (Foldable, concatMap)
-import Prelude hiding (concatMap)
-#endif
 
 -- | Wraps a parse error into a list of errors.
 parseError :: Applicative f => String -> f Aeson.Value

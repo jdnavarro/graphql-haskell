@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 -- | This module provides a representation of a @GraphQL@ Schema in addition to
@@ -23,16 +22,8 @@ module Data.GraphQL.Schema
   , Value(..)
   ) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (pure)
-import Control.Arrow (first)
-import Data.Foldable (foldMap)
-import Data.Traversable (traverse)
-import Data.Monoid (Monoid(mempty,mappend))
-#else
 import Data.Bifunctor (first)
 import Data.Monoid (Alt(Alt,getAlt))
-#endif
 import Control.Applicative (Alternative((<|>), empty))
 import Data.Maybe (catMaybes)
 import Data.Foldable (fold)
@@ -142,11 +133,3 @@ field _ = Nothing
 -- | Returns a list of the 'Field's contained in the given 'SelectionSet'.
 fields :: SelectionSet -> [Field]
 fields = catMaybes . fmap field
-
-#if !MIN_VERSION_base(4,8,0)
-newtype Alt f a = Alt {getAlt :: f a}
-
-instance Alternative f => Monoid (Alt f a) where
-        mempty = Alt empty
-        Alt x `mappend` Alt y = Alt $ x <|> y
-#endif

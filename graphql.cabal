@@ -14,7 +14,7 @@ copyright:           Copyright (C) 2015-2016 J. Daniel Navarro
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.8.4, GHC == 7.10.3
+tested-with:         GHC == 7.10.3, GHC==8.0.1
 extra-source-files:  README.md CHANGELOG.md stack.yaml
                      docs/tutorial/tutorial.lhs
 data-files:          tests/data/*.graphql
@@ -35,6 +35,11 @@ library
                        base >= 4.7 && < 5,
                        text >= 0.11.3.1,
                        unordered-containers >= 0.2.5.0
+  if impl(ghc >= 8.0)
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+  else
+    -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API for pre-GHC8
+    build-depends: fail == 4.9.*, semigroups == 0.18.*
 
 test-suite tasty
   default-language:    Haskell2010

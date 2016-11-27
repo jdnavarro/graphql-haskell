@@ -1,11 +1,7 @@
-{-# LANGUAGE CPP #-}
 -- | This module provides the function to execute a @GraphQL@ request --
 --   according to a 'Schema'.
 module Data.GraphQL.Execute (execute) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>))
-#endif
 import Control.Applicative (Alternative)
 import Data.Maybe (catMaybes)
 
