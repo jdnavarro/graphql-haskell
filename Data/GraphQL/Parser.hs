@@ -8,14 +8,14 @@ import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
+import Data.Scientific (floatingOrInteger)
 
 import Data.Text (Text, append)
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
   , anyChar
-  , decimal
-  , double
+  , scientific
   , endOfLine
   , inClass
   , many1
@@ -23,7 +23,6 @@ import Data.Attoparsec.Text
   , option
   , peekChar
   , sepBy1
-  , signed
   , takeWhile
   , takeWhile1
   )
@@ -149,9 +148,7 @@ typeCondition = namedType
 -- explicit types use the `typedValue` parser.
 value :: Parser Value
 value = ValueVariable <$> variable
-    -- TODO: Handle maxBound, Int32 in spec.
-    <|> ValueInt      <$> tok (signed decimal)
-    <|> ValueFloat    <$> tok (signed double)
+    <|> number
     <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
@@ -159,6 +156,13 @@ value = ValueVariable <$> variable
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
+  where
+    number =  do
+      v <- scientific
+      case floatingOrInteger v of
+        Left r -> pure (ValueFloat r)
+        -- TODO: Handle maxBound, Int32 in spec.
+        Right i -> pure (ValueInt i)
 
 booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
