@@ -16,6 +16,7 @@ module Data.GraphQL.Schema
   , enumA
   , resolvers
   , fields
+  , withField
   -- * AST Reexports
   , Field
   , Argument(..)

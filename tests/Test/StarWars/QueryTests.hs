@@ -27,10 +27,15 @@ test = testGroup "Star Wars Query Tests"
         [r| query HeroNameQuery {
               hero {
                 id
+                appearsIn
               }
             }
         |]
-      $ object [ "data" .= object ["hero" .= object ["id" .= ("2001" :: Text)]]]
+      $ object [ "data" .= object ["hero" .= object
+        [ "id" .= ("2001" :: Text)
+        , "appearsIn" .= ["NEWHOPE","EMPIRE","JEDI" :: Text]
+        ]
+      ]]
     , testCase "R2-D2 ID and friends" . testQuery
         [r| query HeroNameAndFriendsQuery {
               hero {
