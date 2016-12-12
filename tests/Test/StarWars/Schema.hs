@@ -43,4 +43,5 @@ character char =
   , Schema.array  "friends"   $ character <$> getFriends char
   , Schema.enum   "appearsIn" . traverse getEpisode $ appearsIn char
   , Schema.scalar   "secretBackstory" $ secretBackstory char
+  , Schema.scalar "__typename" $ typename char
   ]

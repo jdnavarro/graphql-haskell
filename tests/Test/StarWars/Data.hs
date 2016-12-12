@@ -62,6 +62,10 @@ secretBackstory = error "secretBackstory is secret."
 luke :: Character
 luke = Right luke'
 
+typename :: Character -> Text
+typename (Left _)  = "Droid"
+typename (Right _) = "Human"
+
 luke' :: Human
 luke' = Human
   { _humanChar = CharCommon
