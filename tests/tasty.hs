@@ -22,7 +22,7 @@ main = defaultMain . testGroup "Tests" . (: [SW.test]) =<< ksTest
 
 ksTest :: IO TestTree
 ksTest = testCase "Kitchen Sink"
-                   <$> (assertEqual "Encode" <$> expected <*> actual)
+     <$> (assertEqual "Encode" <$> expected <*> actual)
   where
     expected = Text.readFile
            =<< getDataFileName "tests/data/kitchen-sink.min.graphql"
@@ -30,4 +30,3 @@ ksTest = testCase "Kitchen Sink"
     actual = either (error "Parsing error!") Encoder.document
           .  parseOnly Parser.document
          <$> expected
-

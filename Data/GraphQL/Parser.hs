@@ -148,7 +148,8 @@ typeCondition = namedType
 -- explicit types use the `typedValue` parser.
 value :: Parser Value
 value = ValueVariable <$> variable
-    <|> number
+    -- TODO: Handle maxBound, Int32 in spec.
+    <|> tok (either ValueFloat ValueInt . floatingOrInteger <$> scientific)
     <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
@@ -156,13 +157,6 @@ value = ValueVariable <$> variable
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
-  where
-    number =  do
-      v <- scientific
-      case floatingOrInteger v of
-        Left r -> pure (ValueFloat r)
-        -- TODO: Handle maxBound, Int32 in spec.
-        Right i -> pure (ValueInt i)
 
 booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
