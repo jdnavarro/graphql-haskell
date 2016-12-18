@@ -18,8 +18,6 @@ import Test.StarWars.Schema
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
 
-
-
 test :: TestTree
 test = testGroup "Star Wars Query Tests"
   [ testGroup "Basic Queries"
@@ -206,7 +204,7 @@ test = testGroup "Star Wars Query Tests"
         , "leia" .= object [leiaName]
         ]]
   , testGroup "Fragments for complex queries"
-    [  testCase "Aliases to query for duplicate content" . testQuery
+    [ testCase "Aliases to query for duplicate content" . testQuery
         [r| query DuplicateFields {
               luke: human(id: "1000") {
                 name

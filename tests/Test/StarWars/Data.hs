@@ -70,7 +70,7 @@ luke' = Human
       , _friends    = ["1002","1003","2000","2001"]
       , _appearsIn  = [4,5,6]
       }
-  , homePlanet = "Tatoonie"
+  , homePlanet = "Tatooine"
   }
 
 vader :: Human

@@ -42,5 +42,6 @@ character char =
   , Schema.scalar "name"      $ name char
   , Schema.array  "friends"   $ character <$> getFriends char
   , Schema.enum   "appearsIn" . traverse getEpisode $ appearsIn char
-  , Schema.scalar   "secretBackstory" $ secretBackstory char
+  , Schema.scalar "secretBackstory" $ secretBackstory char
+  , Schema.scalar "homePlanet" $ either mempty homePlanet char
   ]
