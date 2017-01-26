@@ -17,7 +17,6 @@ newtype Document = Document [Definition] deriving (Eq,Show)
 
 data Definition = DefinitionOperation OperationDefinition
                 | DefinitionFragment  FragmentDefinition
-                | DefinitionType      TypeDefinition
                   deriving (Eq,Show)
 
 data OperationDefinition = Query    Node
@@ -127,48 +126,3 @@ newtype ListType = ListType Type deriving (Eq,Show)
 data NonNullType = NonNullTypeNamed NamedType
                  | NonNullTypeList  ListType
                    deriving (Eq,Show)
-
--- * Type definition
-
-data TypeDefinition = TypeDefinitionObject        ObjectTypeDefinition
-                    | TypeDefinitionInterface     InterfaceTypeDefinition
-                    | TypeDefinitionUnion         UnionTypeDefinition
-                    | TypeDefinitionScalar        ScalarTypeDefinition
-                    | TypeDefinitionEnum          EnumTypeDefinition
-                    | TypeDefinitionInputObject   InputObjectTypeDefinition
-                    | TypeDefinitionTypeExtension TypeExtensionDefinition
-                      deriving (Eq,Show)
-
-data ObjectTypeDefinition = ObjectTypeDefinition Name Interfaces [FieldDefinition]
-                            deriving (Eq,Show)
-
-type Interfaces = [NamedType]
-
-data FieldDefinition = FieldDefinition Name ArgumentsDefinition Type
-                       deriving (Eq,Show)
-
-type ArgumentsDefinition = [InputValueDefinition]
-
-data InputValueDefinition = InputValueDefinition Name Type (Maybe DefaultValue)
-                            deriving (Eq,Show)
-
-data InterfaceTypeDefinition = InterfaceTypeDefinition Name [FieldDefinition]
-                               deriving (Eq,Show)
-
-data UnionTypeDefinition = UnionTypeDefinition Name [NamedType]
-                           deriving (Eq,Show)
-
-newtype ScalarTypeDefinition = ScalarTypeDefinition Name
-                            deriving (Eq,Show)
-
-data EnumTypeDefinition = EnumTypeDefinition Name [EnumValueDefinition]
-                          deriving (Eq,Show)
-
-newtype EnumValueDefinition = EnumValueDefinition Name
-                              deriving (Eq,Show)
-
-data InputObjectTypeDefinition = InputObjectTypeDefinition Name [InputValueDefinition]
-                                 deriving (Eq,Show)
-
-newtype TypeExtensionDefinition = TypeExtensionDefinition ObjectTypeDefinition
-                                  deriving (Eq,Show)

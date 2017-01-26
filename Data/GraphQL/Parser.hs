@@ -22,7 +22,6 @@ import Data.Attoparsec.Text
   , manyTill
   , option
   , peekChar
-  , sepBy1
   , takeWhile
   , takeWhile1
   )
@@ -54,7 +53,6 @@ document = whiteSpace
 definition :: Parser Definition
 definition = DefinitionOperation <$> operationDefinition
          <|> DefinitionFragment  <$> fragmentDefinition
-         <|> DefinitionType      <$> typeDefinition
          <?> "definition error!"
 
 operationDefinition :: Parser OperationDefinition
@@ -206,96 +204,6 @@ nonNullType :: Parser NonNullType
 nonNullType = NonNullTypeNamed <$> namedType <* tok "!"
           <|> NonNullTypeList  <$> listType  <* tok "!"
           <?> "nonNullType error!"
-
--- * Type Definition
-
-typeDefinition :: Parser TypeDefinition
-typeDefinition =
-        TypeDefinitionObject        <$> objectTypeDefinition
-    <|> TypeDefinitionInterface     <$> interfaceTypeDefinition
-    <|> TypeDefinitionUnion         <$> unionTypeDefinition
-    <|> TypeDefinitionScalar        <$> scalarTypeDefinition
-    <|> TypeDefinitionEnum          <$> enumTypeDefinition
-    <|> TypeDefinitionInputObject   <$> inputObjectTypeDefinition
-    <|> TypeDefinitionTypeExtension <$> typeExtensionDefinition
-    <?> "typeDefinition error!"
-
-objectTypeDefinition :: Parser ObjectTypeDefinition
-objectTypeDefinition = ObjectTypeDefinition
-    <$  tok "type"
-    <*> name
-    <*> optempty interfaces
-    <*> fieldDefinitions
-
-interfaces :: Parser Interfaces
-interfaces = tok "implements" *> many1 namedType
-
-fieldDefinitions :: Parser [FieldDefinition]
-fieldDefinitions = braces $ many1 fieldDefinition
-
-fieldDefinition :: Parser FieldDefinition
-fieldDefinition = FieldDefinition
-    <$> name
-    <*> optempty argumentsDefinition
-    <*  tok ":"
-    <*> type_
-
-argumentsDefinition :: Parser ArgumentsDefinition
-argumentsDefinition = parens $ many1 inputValueDefinition
-
-interfaceTypeDefinition :: Parser InterfaceTypeDefinition
-interfaceTypeDefinition = InterfaceTypeDefinition
-    <$  tok "interface"
-    <*> name
-    <*> fieldDefinitions
-
-unionTypeDefinition :: Parser UnionTypeDefinition
-unionTypeDefinition = UnionTypeDefinition
-    <$  tok "union"
-    <*> name
-    <*  tok "="
-    <*> unionMembers
-
-unionMembers :: Parser [NamedType]
-unionMembers = namedType `sepBy1` tok "|"
-
-scalarTypeDefinition :: Parser ScalarTypeDefinition
-scalarTypeDefinition = ScalarTypeDefinition
-    <$  tok "scalar"
-    <*> name
-
-enumTypeDefinition :: Parser EnumTypeDefinition
-enumTypeDefinition = EnumTypeDefinition
-    <$  tok "enum"
-    <*> name
-    <*> enumValueDefinitions
-
-enumValueDefinitions :: Parser [EnumValueDefinition]
-enumValueDefinitions = braces $ many1 enumValueDefinition
-
-enumValueDefinition :: Parser EnumValueDefinition
-enumValueDefinition = EnumValueDefinition <$> name
-
-inputObjectTypeDefinition :: Parser InputObjectTypeDefinition
-inputObjectTypeDefinition = InputObjectTypeDefinition
-    <$  tok "input"
-    <*> name
-    <*> inputValueDefinitions
-
-inputValueDefinitions :: Parser [InputValueDefinition]
-inputValueDefinitions = braces $ many1 inputValueDefinition
-
-inputValueDefinition :: Parser InputValueDefinition
-inputValueDefinition = InputValueDefinition
-    <$> name
-    <*  tok ":"
-    <*> type_
-    <*> optional defaultValue
-
-typeExtensionDefinition :: Parser TypeExtensionDefinition
-typeExtensionDefinition = TypeExtensionDefinition
-    <$  tok "extend"
-    <*> objectTypeDefinition
 
 -- * Internal
 
