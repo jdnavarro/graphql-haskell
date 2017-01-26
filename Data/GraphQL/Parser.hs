@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 -- | This module defines a parser for @GraphQL@ request documents.
 module Data.GraphQL.Parser where
 
@@ -9,6 +10,7 @@ import Control.Monad (when)
 import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
 import Data.Scientific (floatingOrInteger)
+import Data.Int (Int32)
 
 import Data.Text (Text, append)
 import Data.Attoparsec.Text
@@ -22,7 +24,6 @@ import Data.Attoparsec.Text
   , manyTill
   , option
   , peekChar
-  , sepBy1
   , takeWhile
   , takeWhile1
   )
@@ -54,7 +55,6 @@ document = whiteSpace
 definition :: Parser Definition
 definition = DefinitionOperation <$> operationDefinition
          <|> DefinitionFragment  <$> fragmentDefinition
-         <|> DefinitionType      <$> typeDefinition
          <?> "definition error!"
 
 operationDefinition :: Parser OperationDefinition
@@ -149,7 +149,7 @@ typeCondition = namedType
 value :: Parser Value
 value = ValueVariable <$> variable
     -- TODO: Handle maxBound, Int32 in spec.
-    <|> tok (either ValueFloat ValueInt . floatingOrInteger <$> scientific)
+    <|> tok floatOrInt32Value
     <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
@@ -157,6 +157,20 @@ value = ValueVariable <$> variable
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
+
+
+floatOrInt32Value :: Parser Value
+floatOrInt32Value = do
+  n <- scientific
+  case (floatingOrInteger n :: Either Double Integer) of
+    Left dbl   -> return $ ValueFloat dbl
+    Right i ->
+      if i < (-2147483648) || i >= 2147483648
+      then fail "Integer value is out of range."
+      else return $ ValueInt (fromIntegral i :: Int32)
+
+
+
 
 booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
@@ -206,96 +220,6 @@ nonNullType :: Parser NonNullType
 nonNullType = NonNullTypeNamed <$> namedType <* tok "!"
           <|> NonNullTypeList  <$> listType  <* tok "!"
           <?> "nonNullType error!"
-
--- * Type Definition
-
-typeDefinition :: Parser TypeDefinition
-typeDefinition =
-        TypeDefinitionObject        <$> objectTypeDefinition
-    <|> TypeDefinitionInterface     <$> interfaceTypeDefinition
-    <|> TypeDefinitionUnion         <$> unionTypeDefinition
-    <|> TypeDefinitionScalar        <$> scalarTypeDefinition
-    <|> TypeDefinitionEnum          <$> enumTypeDefinition
-    <|> TypeDefinitionInputObject   <$> inputObjectTypeDefinition
-    <|> TypeDefinitionTypeExtension <$> typeExtensionDefinition
-    <?> "typeDefinition error!"
-
-objectTypeDefinition :: Parser ObjectTypeDefinition
-objectTypeDefinition = ObjectTypeDefinition
-    <$  tok "type"
-    <*> name
-    <*> optempty interfaces
-    <*> fieldDefinitions
-
-interfaces :: Parser Interfaces
-interfaces = tok "implements" *> many1 namedType
-
-fieldDefinitions :: Parser [FieldDefinition]
-fieldDefinitions = braces $ many1 fieldDefinition
-
-fieldDefinition :: Parser FieldDefinition
-fieldDefinition = FieldDefinition
-    <$> name
-    <*> optempty argumentsDefinition
-    <*  tok ":"
-    <*> type_
-
-argumentsDefinition :: Parser ArgumentsDefinition
-argumentsDefinition = parens $ many1 inputValueDefinition
-
-interfaceTypeDefinition :: Parser InterfaceTypeDefinition
-interfaceTypeDefinition = InterfaceTypeDefinition
-    <$  tok "interface"
-    <*> name
-    <*> fieldDefinitions
-
-unionTypeDefinition :: Parser UnionTypeDefinition
-unionTypeDefinition = UnionTypeDefinition
-    <$  tok "union"
-    <*> name
-    <*  tok "="
-    <*> unionMembers
-
-unionMembers :: Parser [NamedType]
-unionMembers = namedType `sepBy1` tok "|"
-
-scalarTypeDefinition :: Parser ScalarTypeDefinition
-scalarTypeDefinition = ScalarTypeDefinition
-    <$  tok "scalar"
-    <*> name
-
-enumTypeDefinition :: Parser EnumTypeDefinition
-enumTypeDefinition = EnumTypeDefinition
-    <$  tok "enum"
-    <*> name
-    <*> enumValueDefinitions
-
-enumValueDefinitions :: Parser [EnumValueDefinition]
-enumValueDefinitions = braces $ many1 enumValueDefinition
-
-enumValueDefinition :: Parser EnumValueDefinition
-enumValueDefinition = EnumValueDefinition <$> name
-
-inputObjectTypeDefinition :: Parser InputObjectTypeDefinition
-inputObjectTypeDefinition = InputObjectTypeDefinition
-    <$  tok "input"
-    <*> name
-    <*> inputValueDefinitions
-
-inputValueDefinitions :: Parser [InputValueDefinition]
-inputValueDefinitions = braces $ many1 inputValueDefinition
-
-inputValueDefinition :: Parser InputValueDefinition
-inputValueDefinition = InputValueDefinition
-    <$> name
-    <*  tok ":"
-    <*> type_
-    <*> optional defaultValue
-
-typeExtensionDefinition :: Parser TypeExtensionDefinition
-typeExtensionDefinition = TypeExtensionDefinition
-    <$  tok "extend"
-    <*> objectTypeDefinition
 
 -- * Internal
 
