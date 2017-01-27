@@ -17,7 +17,6 @@ document (Document defs) = (`snoc` '\n') . mconcat $ definition <$> defs
 definition :: Definition -> Text
 definition (DefinitionOperation x) = operationDefinition x
 definition (DefinitionFragment  x) = fragmentDefinition x
-definition (DefinitionType      x) = typeDefinition x
 
 operationDefinition :: OperationDefinition -> Text
 operationDefinition (Query    n) = "query "    <> node n
@@ -138,73 +137,6 @@ listType (ListType ty) = brackets (type_ ty)
 nonNullType :: NonNullType -> Text
 nonNullType (NonNullTypeNamed (NamedType x)) = x <> "!"
 nonNullType (NonNullTypeList  x) = listType x <> "!"
-
-typeDefinition :: TypeDefinition -> Text
-typeDefinition (TypeDefinitionObject        x) = objectTypeDefinition x
-typeDefinition (TypeDefinitionInterface     x) = interfaceTypeDefinition x
-typeDefinition (TypeDefinitionUnion         x) = unionTypeDefinition x
-typeDefinition (TypeDefinitionScalar        x) = scalarTypeDefinition x
-typeDefinition (TypeDefinitionEnum          x) = enumTypeDefinition x
-typeDefinition (TypeDefinitionInputObject   x) = inputObjectTypeDefinition x
-typeDefinition (TypeDefinitionTypeExtension x) = typeExtensionDefinition x
-
-objectTypeDefinition :: ObjectTypeDefinition -> Text
-objectTypeDefinition (ObjectTypeDefinition name ifaces fds) =
-    "type " <> name
-            <> optempty (spaced . interfaces) ifaces
-            <> optempty fieldDefinitions fds
-
-interfaces :: Interfaces -> Text
-interfaces = ("implements " <>) . spaces namedType
-
-fieldDefinitions :: [FieldDefinition] -> Text
-fieldDefinitions = bracesCommas fieldDefinition
-
-fieldDefinition :: FieldDefinition -> Text
-fieldDefinition (FieldDefinition name args ty) =
-    name <> optempty argumentsDefinition args
-         <> ":"
-         <> type_ ty
-
-argumentsDefinition :: ArgumentsDefinition -> Text
-argumentsDefinition = parensCommas inputValueDefinition
-
-interfaceTypeDefinition :: InterfaceTypeDefinition -> Text
-interfaceTypeDefinition (InterfaceTypeDefinition name fds) =
-    "interface " <> name <> fieldDefinitions fds
-
-unionTypeDefinition :: UnionTypeDefinition -> Text
-unionTypeDefinition (UnionTypeDefinition name ums) =
-    "union " <> name <> "=" <> unionMembers ums
-
-unionMembers :: [NamedType] -> Text
-unionMembers = intercalate "|" . fmap namedType
-
-scalarTypeDefinition :: ScalarTypeDefinition -> Text
-scalarTypeDefinition (ScalarTypeDefinition name) = "scalar " <> name
-
-enumTypeDefinition :: EnumTypeDefinition -> Text
-enumTypeDefinition (EnumTypeDefinition name evds) =
-    "enum " <> name
-            <> bracesCommas enumValueDefinition evds
-
-enumValueDefinition :: EnumValueDefinition -> Text
-enumValueDefinition (EnumValueDefinition name) = name
-
-inputObjectTypeDefinition :: InputObjectTypeDefinition -> Text
-inputObjectTypeDefinition (InputObjectTypeDefinition name ivds) =
-    "input " <> name <> inputValueDefinitions ivds
-
-inputValueDefinitions :: [InputValueDefinition] -> Text
-inputValueDefinitions = bracesCommas inputValueDefinition
-
-inputValueDefinition :: InputValueDefinition -> Text
-inputValueDefinition (InputValueDefinition name ty dv) =
-    name <> ":" <> type_ ty <> maybe mempty defaultValue dv
-
-typeExtensionDefinition :: TypeExtensionDefinition -> Text
-typeExtensionDefinition (TypeExtensionDefinition otd) =
-    "extend " <> objectTypeDefinition otd
 
 -- * Internal
 
