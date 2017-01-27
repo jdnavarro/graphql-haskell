@@ -1,7 +1,6 @@
 -- | This is the AST meant to be executed.
 module Data.GraphQL.AST.Core where
 
-import Data.Int (Int32)
 import Data.List.NonEmpty (NonEmpty)
 
 import Data.Text (Text)
@@ -18,7 +17,7 @@ data Field = Field Name [Argument] [Field] deriving (Eq,Show)
 
 data Argument = Argument Name Value deriving (Eq,Show)
 
-data Value = ValueInt Int32
+data Value = ValueInt Integer
            -- GraphQL Float is double precision
            | ValueFloat Double
            | ValueBoolean Bool

@@ -147,7 +147,7 @@ typeCondition = namedType
 value :: Parser Value
 value = ValueVariable <$> variable
     -- TODO: Handle maxBound, Int32 in spec.
-    <|> tok (either ValueFloat ValueInt . floatingOrInteger <$> scientific)
+    <|> tok floatOrIntValue
     <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
@@ -155,6 +155,16 @@ value = ValueVariable <$> variable
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
+
+floatOrIntValue :: Parser Value
+floatOrIntValue = do
+  n <- scientific
+  case floatingOrInteger n of
+    Left dbl  -> return $ ValueFloat dbl
+    Right i ->
+      if i < (-2147483648) || i >= 2147483648
+      then fail "Integer value is out of range."
+      else return $ ValueInt i
 
 booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
