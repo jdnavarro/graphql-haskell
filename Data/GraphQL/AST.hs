@@ -3,7 +3,6 @@
 
 module Data.GraphQL.AST where
 
-import Data.Int (Int32)
 import Data.String (IsString(fromString))
 import Data.Text (Text, pack)
 
@@ -90,7 +89,7 @@ type TypeCondition = NamedType
 --
 --   <https://facebook.github.io/graphql/#sec-Input-Values Input Value Specification>
 data Value = ValueVariable Variable
-           | ValueInt Int32
+           | ValueInt Integer
            -- GraphQL Float is double precison
            | ValueFloat Double
            | ValueBoolean Bool
