@@ -1,15 +1,11 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.StarWars.Schema where
 
 import Control.Applicative (Alternative, empty)
+import Data.List.NonEmpty (NonEmpty((:|)))
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>))
-import Data.Traversable (traverse)
-#endif
-import Data.GraphQL.Schema
+import Data.GraphQL.Schema (Schema, Resolver, Argument(..), Value(..))
 import qualified Data.GraphQL.Schema as Schema
 
 import Test.StarWars.Data
@@ -18,7 +14,7 @@ import Test.StarWars.Data
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsSchema.js
 
 schema :: Alternative f => Schema f
-schema = Schema [hero, human, droid]
+schema = hero :| [human, droid]
 
 hero :: Alternative f => Resolver f
 hero = Schema.objectA "hero" $ \case

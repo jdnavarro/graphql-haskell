@@ -1,27 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 -- | This module defines a parser for @GraphQL@ request documents.
 module Data.GraphQL.Parser where
 
 import Prelude hiding (takeWhile)
 
-import Control.Applicative ((<|>), empty, many, optional)
+import Control.Applicative ((<|>), Alternative, empty, many, optional)
 import Control.Monad (when)
 import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
+import Data.Monoid ((<>))
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Scientific (floatingOrInteger)
 
 import Data.Text (Text, append)
+import Data.Attoparsec.Combinator (lookAhead)
 import Data.Attoparsec.Text
   ( Parser
   , (<?>)
   , anyChar
-  , scientific
   , endOfLine
   , inClass
   , many1
   , manyTill
   , option
   , peekChar
+  , scientific
   , takeWhile
   , takeWhile1
   )
@@ -35,20 +39,12 @@ name = tok $ append <$> takeWhile1 isA_z
                     <*> takeWhile ((||) <$> isDigit <*> isA_z)
   where
     -- `isAlpha` handles many more Unicode Chars
-    isA_z =  inClass $ '_' : ['A'..'Z'] ++ ['a'..'z']
+    isA_z =  inClass $ '_' : ['A'..'Z'] <> ['a'..'z']
 
 -- * Document
 
 document :: Parser Document
-document = whiteSpace
-     *> (Document <$> many1 definition)
-    -- Try SelectionSet when no definition
-    <|> (Document . pure
-                  . DefinitionOperation
-                  . Query
-                  . Node mempty empty empty
-                <$> selectionSet)
-    <?> "document error!"
+document = whiteSpace *> manyNE definition
 
 definition :: Parser Definition
 definition = DefinitionOperation <$> operationDefinition
@@ -56,54 +52,48 @@ definition = DefinitionOperation <$> operationDefinition
          <?> "definition error!"
 
 operationDefinition :: Parser OperationDefinition
-operationDefinition =
-        Query    <$ tok "query"    <*> node
-    <|> Mutation <$ tok "mutation" <*> node
-    <?> "operationDefinition error!"
+operationDefinition = OperationSelectionSet <$> selectionSet
+                  <|> OperationDefinition   <$> operationType
+                                            <*> name
+                                            <*> opt variableDefinitions
+                                            <*> opt directives
+                                            <*> selectionSet
+                  <?> "operationDefinition error"
 
-node :: Parser Node
-node = Node <$> name
-            <*> optempty variableDefinitions
-            <*> optempty directives
-            <*> selectionSet
+operationType :: Parser OperationType
+operationType = Query    <$ tok "query"
+            <|> Mutation <$ tok "mutation"
+            <?> "operationType error"
 
-variableDefinitions :: Parser [VariableDefinition]
-variableDefinitions = parens (many1 variableDefinition)
-
-variableDefinition :: Parser VariableDefinition
-variableDefinition =
-    VariableDefinition <$> variable
-                       <*  tok ":"
-                       <*> type_
-                       <*> optional defaultValue
-
-defaultValue :: Parser DefaultValue
-defaultValue = tok "=" *> value
-
-variable :: Parser Variable
-variable = Variable <$ tok "$" <*> name
+-- * SelectionSet
 
 selectionSet :: Parser SelectionSet
-selectionSet = braces $ many1 selection
+selectionSet = braces $ manyNE selection
+
+selectionSetOpt :: Parser SelectionSetOpt
+selectionSetOpt = braces $ many1 selection
 
 selection :: Parser Selection
-selection = SelectionField <$> field
-            -- Inline first to catch `on` case
-        <|> SelectionInlineFragment <$> inlineFragment
+selection = SelectionField          <$> field
         <|> SelectionFragmentSpread <$> fragmentSpread
+        <|> SelectionInlineFragment <$> inlineFragment
         <?> "selection error!"
 
+-- * Field
+
 field :: Parser Field
-field = Field <$> optempty alias
+field = Field <$> optional alias
               <*> name
-              <*> optempty arguments
-              <*> optempty directives
-              <*> optempty selectionSet
+              <*> opt arguments
+              <*> opt directives
+              <*> opt selectionSetOpt
 
 alias :: Parser Alias
 alias = name <* tok ":"
 
-arguments :: Parser [Argument]
+-- * Arguments
+
+arguments :: Parser Arguments
 arguments = parens $ many1 argument
 
 argument :: Parser Argument
@@ -112,98 +102,103 @@ argument = Argument <$> name <* tok ":" <*> value
 -- * Fragments
 
 fragmentSpread :: Parser FragmentSpread
--- TODO: Make sure it fails when `... on`.
--- See https://facebook.github.io/graphql/#FragmentSpread
-fragmentSpread = FragmentSpread
-    <$  tok "..."
-    <*> name
-    <*> optempty directives
+fragmentSpread = FragmentSpread <$  tok "..."
+                                <*> fragmentName
+                                <*> opt directives
 
--- InlineFragment tried first in order to guard against 'on' keyword
 inlineFragment :: Parser InlineFragment
-inlineFragment = InlineFragment
-    <$  tok "..."
-    <*  tok "on"
-    <*> typeCondition
-    <*> optempty directives
-    <*> selectionSet
+inlineFragment = InlineFragment <$  tok "..."
+                                <*> optional typeCondition
+                                <*> opt directives
+                                <*> selectionSet
 
 fragmentDefinition :: Parser FragmentDefinition
 fragmentDefinition = FragmentDefinition
-    <$  tok "fragment"
-    <*> name
-    <*  tok "on"
-    <*> typeCondition
-    <*> optempty directives
-    <*> selectionSet
+                 <$  tok "fragment"
+                 <*> name
+                 <*> typeCondition
+                 <*> opt directives
+                 <*> selectionSet
+
+fragmentName :: Parser FragmentName
+fragmentName = but (tok "on") *> name
 
 typeCondition :: Parser TypeCondition
-typeCondition = namedType
+typeCondition = tok "on" *> name
 
--- * Values
+-- * Input Values
 
--- This will try to pick the first type it can parse. If you are working with
--- explicit types use the `typedValue` parser.
 value :: Parser Value
 value = ValueVariable <$> variable
-    -- TODO: Handle maxBound, Int32 in spec.
     <|> tok (either ValueFloat ValueInt . floatingOrInteger <$> scientific)
     <|> ValueBoolean  <$> booleanValue
+    <|> ValueNull     <$  tok "null"
     <|> ValueString   <$> stringValue
-    -- `true` and `false` have been tried before
-    <|> ValueEnum     <$> name
+    <|> ValueEnum     <$> enumValue
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
+  where
+    booleanValue :: Parser Bool
+    booleanValue = True  <$ tok "true"
+               <|> False <$ tok "false"
 
-booleanValue :: Parser Bool
-booleanValue = True  <$ tok "true"
-   <|> False <$ tok "false"
+    -- TODO: Escape characters. Look at `jsstring_` in aeson package.
+    stringValue :: Parser Text
+    stringValue = quotes (takeWhile (/= '"'))
 
--- TODO: Escape characters. Look at `jsstring_` in aeson package.
-stringValue :: Parser Text
-stringValue = quotes (takeWhile (/= '"'))
+    enumValue :: Parser Name
+    enumValue = but (tok "true") *> but (tok "false") *> but (tok "null") *> name
 
--- Notice it can be empty
-listValue :: Parser ListValue
-listValue = ListValue <$> brackets (many value)
+    listValue :: Parser [Value]
+    listValue = brackets $ many1 value
 
--- Notice it can be empty
-objectValue :: Parser ObjectValue
-objectValue = ObjectValue <$> braces (many objectField)
+    objectValue :: Parser [ObjectField]
+    objectValue = braces $ many1 objectField
 
 objectField :: Parser ObjectField
 objectField = ObjectField <$> name <* tok ":" <*> value
 
+-- * Variables
+
+variableDefinitions :: Parser VariableDefinitions
+variableDefinitions = parens $ many1 variableDefinition
+
+variableDefinition :: Parser VariableDefinition
+variableDefinition = VariableDefinition <$> variable
+                                        <*  tok ":"
+                                        <*> type_
+                                        <*> optional defaultValue
+
+variable :: Parser Variable
+variable = tok "$" *> name
+
+defaultValue :: Parser DefaultValue
+defaultValue = tok "=" *> value
+
+-- * Input Types
+
+type_ :: Parser Type
+type_ = TypeNamed   <$> name
+    <|> TypeList    <$> brackets type_
+    <|> TypeNonNull <$> nonNullType
+    <?> "type_ error!"
+
+nonNullType :: Parser NonNullType
+nonNullType = NonNullTypeNamed <$> name <* tok "!"
+          <|> NonNullTypeList  <$> brackets type_  <* tok "!"
+          <?> "nonNullType error!"
+
 -- * Directives
 
-directives :: Parser [Directive]
+directives :: Parser Directives
 directives = many1 directive
 
 directive :: Parser Directive
 directive = Directive
-    <$  tok "@"
-    <*> name
-    <*> optempty arguments
-
--- * Type Reference
-
-type_ :: Parser Type
-type_ = TypeList    <$> listType
-    <|> TypeNonNull <$> nonNullType
-    <|> TypeNamed   <$> namedType
-    <?> "type_ error!"
-
-namedType :: Parser NamedType
-namedType = NamedType <$> name
-
-listType :: Parser ListType
-listType = ListType <$> brackets type_
-
-nonNullType :: Parser NonNullType
-nonNullType = NonNullTypeNamed <$> namedType <* tok "!"
-          <|> NonNullTypeList  <$> listType  <* tok "!"
-          <?> "nonNullType error!"
+        <$  tok "@"
+        <*> name
+        <*> opt arguments
 
 -- * Internal
 
@@ -225,12 +220,18 @@ brackets = between "[" "]"
 between :: Parser Text -> Parser Text -> Parser a -> Parser a
 between open close p = tok open *> p <* tok close
 
--- `empty` /= `pure mempty` for `Parser`.
-optempty :: Monoid a => Parser a -> Parser a
-optempty = option mempty
+opt :: Monoid a => Parser a -> Parser a
+opt = option mempty
 
--- ** WhiteSpace
---
+-- Hack to reverse parser success
+but :: Parser a -> Parser ()
+but pn = False <$ lookAhead pn <|> pure True >>= \case
+  False -> empty
+  True  -> pure ()
+
+manyNE :: Alternative f => f a -> f (NonEmpty a)
+manyNE p = (:|) <$> p <*> many p
+
 whiteSpace :: Parser ()
 whiteSpace = peekChar >>= traverse_ (\c ->
     if isSpace c || c == ','

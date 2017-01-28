@@ -6,15 +6,17 @@ import Data.List.NonEmpty (NonEmpty)
 
 import Data.Text (Text)
 
-newtype Name = Name Text deriving (Eq,Show)
+type Name = Text
 
-newtype Document = Document (NonEmpty Operation) deriving (Eq,Show)
+type Document = NonEmpty Operation
 
-data Operation = Query (NonEmpty Field)
+data Operation = Query    (NonEmpty Field)
                | Mutation (NonEmpty Field)
                  deriving (Eq,Show)
 
-data Field = Field Name [Argument] [Field] deriving (Eq,Show)
+data Field = Field (Maybe Alias) Name [Argument] [Field] deriving (Eq,Show)
+
+type Alias = Name
 
 data Argument = Argument Name Value deriving (Eq,Show)
 
