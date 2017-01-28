@@ -8,6 +8,7 @@ import Control.Applicative ((<|>), empty, many, optional)
 import Control.Monad (when)
 import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
+import Data.Int (Int32)
 import Data.Scientific (floatingOrInteger)
 
 import Data.Text (Text, append)
@@ -147,7 +148,7 @@ typeCondition = namedType
 value :: Parser Value
 value = ValueVariable <$> variable
     -- TODO: Handle maxBound, Int32 in spec.
-    <|> tok (either ValueFloat ValueInt . floatingOrInteger <$> scientific)
+    <|> tok floatOrInt32Value
     <|> ValueBoolean  <$> booleanValue
     <|> ValueString   <$> stringValue
     -- `true` and `false` have been tried before
@@ -155,6 +156,16 @@ value = ValueVariable <$> variable
     <|> ValueList     <$> listValue
     <|> ValueObject   <$> objectValue
     <?> "value error!"
+
+floatOrInt32Value :: Parser Value
+floatOrInt32Value = do
+  n <- scientific
+  case (floatingOrInteger n :: Either Double Integer) of
+    Left dbl   -> return $ ValueFloat dbl
+    Right i ->
+      if i < (-2147483648) || i >= 2147483648
+      then fail "Integer value is out of range."
+      else return $ ValueInt (fromIntegral i :: Int32)
 
 booleanValue :: Parser Bool
 booleanValue = True  <$ tok "true"
