@@ -23,8 +23,9 @@ data Argument = Argument Name Value deriving (Eq,Show)
 data Value = ValueInt Int32
            -- GraphQL Float is double precision
            | ValueFloat Double
-           | ValueBoolean Bool
            | ValueString Text
+           | ValueBoolean Bool
+           | ValueNull
            | ValueEnum Name
            | ValueList [Value]
            | ValueObject [ObjectField]

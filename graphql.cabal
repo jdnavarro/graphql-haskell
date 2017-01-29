@@ -26,6 +26,7 @@ library
   exposed-modules:     Data.GraphQL
                        Data.GraphQL.AST
                        Data.GraphQL.AST.Core
+                       Data.GraphQL.AST.Transform
                        Data.GraphQL.Execute
                        Data.GraphQL.Encoder
                        Data.GraphQL.Error

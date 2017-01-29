@@ -10,16 +10,9 @@ import qualified Data.Aeson as Aeson
 
 import qualified Data.GraphQL.AST as AST
 import qualified Data.GraphQL.AST.Core as AST.Core
+import qualified Data.GraphQL.AST.Transform as Transform
 import Data.GraphQL.Schema (Schema)
 import qualified Data.GraphQL.Schema as Schema
-
-
-
-core :: Schema.Subs -> AST.Document -> AST.Core.Document
-core subs ((AST.DefinitionOperation opDef) :| []) = error "Not implemented yet"
-core _    ((AST.DefinitionFragment fragDef) :| []) =
-  error "Fragment definitions not supported yet"
-core _ _ = error "Multiple definitions not supported yet"
 
 -- | Takes a 'Schema', a variable substitution function ('Schema.Subs'), and a
 --   @GraphQL@ 'document'. The substitution is applied to the document using
@@ -30,7 +23,7 @@ core _ _ = error "Multiple definitions not supported yet"
 execute
   :: Alternative f
   => Schema f -> Schema.Subs -> AST.Document -> f Aeson.Value
-execute schema subs doc = document schema $ core subs doc
+execute schema subs doc = document schema $ Transform.document subs doc
 
 document :: Alternative f => Schema f -> AST.Core.Document -> f Aeson.Value
 document schema (op :| [])= operation schema op

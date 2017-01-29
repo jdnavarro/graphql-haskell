@@ -20,7 +20,7 @@ module Data.GraphQL.Schema
   , Value(..)
   ) where
 
-import Control.Applicative (Alternative( empty))
+import Control.Applicative (Alternative(empty))
 import Data.Foldable (fold)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
