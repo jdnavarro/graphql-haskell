@@ -3,15 +3,23 @@
 module Data.GraphQL.Execute (execute) where
 
 import Control.Applicative (Alternative)
-import Data.Maybe (catMaybes)
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 import qualified Data.Aeson as Aeson
 
-import Data.GraphQL.AST
-import Data.GraphQL.Schema (Schema(..))
+import qualified Data.GraphQL.AST as AST
+import qualified Data.GraphQL.AST.Core as AST.Core
+import Data.GraphQL.Schema (Schema)
 import qualified Data.GraphQL.Schema as Schema
 
-import Data.GraphQL.Error
+
+
+core :: Schema.Subs -> AST.Document -> AST.Core.Document
+core subs ((AST.DefinitionOperation opDef) :| []) = error "Not implemented yet"
+core _    ((AST.DefinitionFragment fragDef) :| []) =
+  error "Fragment definitions not supported yet"
+core _ _ = error "Multiple definitions not supported yet"
 
 -- | Takes a 'Schema', a variable substitution function ('Schema.Subs'), and a
 --   @GraphQL@ 'document'. The substitution is applied to the document using
@@ -19,9 +27,19 @@ import Data.GraphQL.Error
 --
 --   Returns the result of the query against the 'Schema' wrapped in a /data/ field, or
 --   errors wrapped in an /errors/ field.
-execute :: Alternative f
-  => Schema.Schema f -> Schema.Subs -> Document -> f Aeson.Value
-execute resolvers subs doc = undefined -- resolver resolvs $ rootFields subs doc
+execute
+  :: Alternative f
+  => Schema f -> Schema.Subs -> AST.Document -> f Aeson.Value
+execute schema subs doc = document schema $ core subs doc
+
+document :: Alternative f => Schema f -> AST.Core.Document -> f Aeson.Value
+document schema (op :| [])= operation schema op
+document _ _ = error "Multiple operations not supported yet"
+
+operation :: Alternative f => Schema f -> AST.Core.Operation -> f Aeson.Value
+operation schema (AST.Core.Query flds) =
+  Schema.resolve (NE.toList schema) (NE.toList flds)
+operation _ _ = error "Mutations not supported yet"
 
 -- | Takes a variable substitution function and a @GraphQL@ document.
 --   If the document contains one query (and no other definitions)
