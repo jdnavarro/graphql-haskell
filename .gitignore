@@ -4,3 +4,7 @@ cabal.sandbox.config
 dist/
 TAGS
 .#*
+.DS_Store
+cabal.project.local
+dist-newstyle/
+dist-newstyle/
