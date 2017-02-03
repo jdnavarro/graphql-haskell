@@ -25,7 +25,7 @@ data Definition = DefinitionOperation OperationDefinition
 
 data OperationDefinition = OperationSelectionSet SelectionSet
                          | OperationDefinition   OperationType
-                                                 Name
+                                                 (Maybe Name)
                                                  VariableDefinitions
                                                  Directives
                                                  SelectionSet

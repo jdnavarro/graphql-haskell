@@ -54,7 +54,7 @@ definition = DefinitionOperation <$> operationDefinition
 operationDefinition :: Parser OperationDefinition
 operationDefinition = OperationSelectionSet <$> selectionSet
                   <|> OperationDefinition   <$> operationType
-                                            <*> name
+                                            <*> optional name
                                             <*> opt variableDefinitions
                                             <*> opt directives
                                             <*> selectionSet

@@ -22,9 +22,9 @@ definition (DefinitionFragment  x) = fragmentDefinition x
 operationDefinition :: OperationDefinition -> Text
 operationDefinition (OperationSelectionSet sels) = selectionSet sels
 operationDefinition (OperationDefinition Query    name vars dirs sels) =
-  "query " <> node name vars dirs sels
+  "query " <> node (fold name) vars dirs sels
 operationDefinition (OperationDefinition Mutation name vars dirs sels) =
-  "mutation " <> node name vars dirs sels
+  "mutation " <> node (fold name) vars dirs sels
 
 node :: Name -> VariableDefinitions -> Directives -> SelectionSet -> Text
 node name vars dirs sels =
