@@ -19,7 +19,7 @@ import Data.GraphQL.Error
 --   executed according to the given 'Schema'.
 --
 --   Returns the response as an @Aeson.@'Aeson.Value'.
-graphql :: Alternative m => Schema m -> Text -> m Aeson.Value
+graphql :: (Alternative m, Monad m) => Schema m -> Text -> m Aeson.Value
 graphql = flip graphqlSubs $ const Nothing
 
 -- | Takes a 'Schema', a variable substitution function and text
@@ -28,7 +28,7 @@ graphql = flip graphqlSubs $ const Nothing
 --   query and the query is then executed according to the given 'Schema'.
 --
 --   Returns the response as an @Aeson.@'Aeson.Value'.
-graphqlSubs :: Alternative m => Schema m -> Subs -> Text -> m Aeson.Value
+graphqlSubs :: (Alternative m, Monad m) => Schema m -> Subs -> Text -> m Aeson.Value
 graphqlSubs schema f =
     either parseError (execute schema f)
   . Attoparsec.parseOnly document

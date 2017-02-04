@@ -2,7 +2,7 @@
 --   according to a 'Schema'.
 module Data.GraphQL.Execute (execute) where
 
-import Control.Applicative (Alternative)
+import Control.Applicative (Alternative, empty)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
@@ -21,9 +21,9 @@ import qualified Data.GraphQL.Schema as Schema
 --   Returns the result of the query against the 'Schema' wrapped in a /data/ field, or
 --   errors wrapped in an /errors/ field.
 execute
-  :: Alternative f
+  :: (Alternative f, Monad f)
   => Schema f -> Schema.Subs -> AST.Document -> f Aeson.Value
-execute schema subs doc = document schema $ Transform.document subs doc
+execute schema subs doc = document schema =<< maybe empty pure (Transform.document subs doc)
 
 document :: Alternative f => Schema f -> AST.Core.Document -> f Aeson.Value
 document schema (op :| [])= operation schema op
