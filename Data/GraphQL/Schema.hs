@@ -48,7 +48,7 @@ type Fields = [Field]
 type Arguments = [Argument]
 
 -- | Variable substitution function.
-type Subs = Text -> Maybe Text
+type Subs = Name -> Maybe Value
 
 -- | Create a new 'Resolver' with the given 'Name' from the given 'Resolver's.
 object :: Alternative f => Name -> Resolvers f -> Resolver f
@@ -109,7 +109,6 @@ withField name f (Field alias name' _ _) =
     else empty
   where
     aliasOrName = fromMaybe name alias
-
 
 -- | Takes a list of 'Resolver's and a list of 'Field's and applies each
 --   'Resolver' to each 'Field'. Resolves into a value containing the

@@ -3,6 +3,7 @@ module Data.GraphQL.AST.Core where
 
 import Data.Int (Int32)
 import Data.List.NonEmpty (NonEmpty)
+import Data.String
 
 import Data.Text (Text)
 
@@ -30,5 +31,8 @@ data Value = ValueInt Int32
            | ValueList [Value]
            | ValueObject [ObjectField]
              deriving (Eq,Show)
+
+instance IsString Value where
+  fromString = ValueString . fromString
 
 data ObjectField = ObjectField Name Value deriving (Eq,Show)
