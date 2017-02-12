@@ -179,7 +179,7 @@ defaultValue = tok "=" *> value
 -- * Input Types
 
 type_ :: Parser Type
-type_ = TypeNamed   <$> name
+type_ = TypeNamed   <$> name <* but "!"
     <|> TypeList    <$> brackets type_
     <|> TypeNonNull <$> nonNullType
     <?> "type_ error!"
