@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Data.GraphQL.AST.Transform where
 
 import Control.Applicative (empty)
@@ -23,13 +24,13 @@ type Fragmenter = Name -> [Core.Field]
 
 -- TODO: Replace Maybe by Either CustomError
 document :: Schema.Subs -> Full.Document -> Maybe Core.Document
-document subs defs = operations subs fr ops
+document subs doc = operations subs fr ops
   where
     (fr, ops) = first foldFrags
               . partitionEithers
               . NonEmpty.toList
               $ defrag subs
-            <$> defs
+            <$> doc
 
     foldFrags :: [Fragmenter] -> Fragmenter
     foldFrags fs n = getAlt $ foldMap (Alt . ($ n)) fs
@@ -93,8 +94,17 @@ fragmentDefinition subs (Full.FragmentDefinition name _tc _dirs sels) name' =
 
 field :: Schema.Subs -> Fragmenter -> Full.Field -> Maybe Core.Field
 field subs fr (Full.Field a n args _dirs sels) =
-      Core.Field a n (fold $ argument subs `traverse` args)
-  <$> traverse (hush <=< selection subs fr) sels
+        Core.Field a n (fold $ argument subs `traverse` args)
+        -- TODO: hush should error when fragments are not defined in a field
+    <$> traverse (hush <=< selection subs fr) (foldr go empty sels)
+  where
+    go :: Full.Selection -> Full.SelectionSetOpt -> Full.SelectionSetOpt
+    go (Full.SelectionFragmentSpread (Full.FragmentSpread name _dirs)) acc =
+      (Full.SelectionField . full <$> fr name) ++ acc
+    go x acc = x : acc
+
+    full :: Core.Field -> Full.Field
+    full (Core.Field a' n' _args' _sels') = Full.Field a' n' empty empty []
 
 argument :: Schema.Subs -> Full.Argument -> Maybe Core.Argument
 argument subs (Full.Argument n v) = Core.Argument n <$> value subs v

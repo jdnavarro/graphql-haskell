@@ -28,7 +28,7 @@ execute
 execute schema subs doc = document schema =<< maybe empty pure (Transform.document subs doc)
 
 document :: Alternative f => Schema f -> AST.Core.Document -> f Aeson.Value
-document schema (op :| [])= operation schema op
+document schema (op :| []) = operation schema op
 document _ _ = error "Multiple operations not supported yet"
 
 operation :: Alternative f => Schema f -> AST.Core.Operation -> f Aeson.Value
