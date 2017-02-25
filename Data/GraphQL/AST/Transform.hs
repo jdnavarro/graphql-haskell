@@ -7,8 +7,7 @@ import Data.Bifunctor (first)
 import Data.Either (partitionEithers)
 import Data.Foldable (fold, foldMap)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (maybeToList)
-import Data.Monoid (Alt(Alt,getAlt))
+import Data.Monoid (Alt(Alt,getAlt), (<>))
 
 import Data.Text (Text)
 
@@ -22,7 +21,7 @@ type Name = Text
 --   empty list is returned.
 type Fragmenter = Name -> [Core.Field]
 
--- TODO: Replace Maybe by Either CustomError
+-- TODO: Replace Maybe by MonadThrow with CustomError
 document :: Schema.Subs -> Full.Document -> Maybe Core.Document
 document subs doc = operations subs fr ops
   where
@@ -37,6 +36,7 @@ document subs doc = operations subs fr ops
 
 -- * Operation
 
+-- TODO: Replace Maybe by MonadThrow CustomError
 operations
   :: Schema.Subs
   -> Fragmenter
@@ -44,6 +44,7 @@ operations
   -> Maybe Core.Document
 operations subs fr = NonEmpty.nonEmpty <=< traverse (operation subs fr)
 
+-- TODO: Replace Maybe by MonadThrow CustomError
 operation
   :: Schema.Subs
   -> Fragmenter
@@ -57,17 +58,17 @@ operation subs fr (Full.OperationDefinition ot _n _vars _dirs sels) =
     Full.Query    -> Core.Query    <$> node
     Full.Mutation -> Core.Mutation <$> node
   where
-    node = traverse (hush <=< selection subs fr) sels
+    node = traverse (hush . selection subs fr) sels
 
 selection
   :: Schema.Subs
   -> Fragmenter
   -> Full.Selection
-  -> Maybe (Either [Core.Field] Core.Field)
+  -> Either [Core.Field] Core.Field
 selection subs fr (Full.SelectionField fld) =
-  Right <$> field subs fr fld
+  Right $ field subs fr fld
 selection _    fr (Full.SelectionFragmentSpread (Full.FragmentSpread n _dirs)) =
-  Just . Left $ fr n
+  Left $ fr n
 selection _ _  (Full.SelectionInlineFragment _)  =
   error "Inline fragments not supported yet"
 
@@ -88,23 +89,16 @@ fragmentDefinition :: Schema.Subs -> Full.FragmentDefinition -> Fragmenter
 fragmentDefinition subs (Full.FragmentDefinition name _tc _dirs sels) name' =
   -- TODO: Support fragments within fragments. Fold instead of map.
   if name == name'
-  then either id pure =<< maybeToList
-                      =<< NonEmpty.toList (selection subs mempty <$> sels)
+  then either id pure =<< NonEmpty.toList (selection subs mempty <$> sels)
   else empty
 
-field :: Schema.Subs -> Fragmenter -> Full.Field -> Maybe Core.Field
+field :: Schema.Subs -> Fragmenter -> Full.Field -> Core.Field
 field subs fr (Full.Field a n args _dirs sels) =
-        Core.Field a n (fold $ argument subs `traverse` args)
-        -- TODO: hush should error when fragments are not defined in a field
-    <$> traverse (hush <=< selection subs fr) (foldr go empty sels)
+    Core.Field a n (fold $ argument subs `traverse` args) (foldr go empty sels)
   where
-    go :: Full.Selection -> Full.SelectionSetOpt -> Full.SelectionSetOpt
-    go (Full.SelectionFragmentSpread (Full.FragmentSpread name _dirs)) acc =
-      (Full.SelectionField . full <$> fr name) ++ acc
-    go x acc = x : acc
-
-    full :: Core.Field -> Full.Field
-    full (Core.Field a' n' _args' _sels') = Full.Field a' n' empty empty []
+    go :: Full.Selection -> [Core.Field] -> [Core.Field]
+    go (Full.SelectionFragmentSpread (Full.FragmentSpread name _dirs)) = (fr name <>)
+    go sel =  (either id pure (selection subs fr sel) <>)
 
 argument :: Schema.Subs -> Full.Argument -> Maybe Core.Argument
 argument subs (Full.Argument n v) = Core.Argument n <$> value subs v
