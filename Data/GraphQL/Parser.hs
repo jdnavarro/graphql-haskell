@@ -9,10 +9,9 @@ import Control.Applicative ((<|>), Alternative, empty, many, optional)
 import Control.Monad (when)
 import Data.Char (isDigit, isSpace)
 import Data.Foldable (traverse_)
-import Data.Int (Int32)
 import Data.Monoid ((<>))
 import Data.List.NonEmpty (NonEmpty((:|)))
-import Data.Scientific (floatingOrInteger)
+import Data.Scientific (floatingOrInteger, scientific, toBoundedInteger)
 
 import Data.Text (Text, append)
 import Data.Attoparsec.Combinator (lookAhead)
@@ -26,10 +25,10 @@ import Data.Attoparsec.Text
   , manyTill
   , option
   , peekChar
-  , scientific
   , takeWhile
   , takeWhile1
   )
+import qualified Data.Attoparsec.Text as Attoparsec (scientific)
 
 import Data.GraphQL.AST
 
@@ -145,14 +144,13 @@ value = ValueVariable <$> variable
                <|> False <$ tok "false"
 
     floatOrInt32Value :: Parser Value
-    floatOrInt32Value = do
-      n <- scientific
-      case (floatingOrInteger n :: Either Double Integer) of
-        Left dbl   -> return $ ValueFloat dbl
-        Right i ->
-          if i < (-2147483648) || i >= 2147483648
-          then fail "Integer value is out of range."
-          else return $ ValueInt (fromIntegral i :: Int32)
+    floatOrInt32Value =
+      Attoparsec.scientific >>=
+      either (pure . ValueFloat)
+             (maybe (fail "Integer value is out of range.")
+                    (pure . ValueInt)
+                    . toBoundedInteger . (`scientific` 1))
+             . floatingOrInteger
 
     -- TODO: Escape characters. Look at `jsstring_` in aeson package.
     stringValue :: Parser Text
