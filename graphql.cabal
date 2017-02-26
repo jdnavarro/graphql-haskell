@@ -25,11 +25,13 @@ library
   ghc-options:         -Wall
   exposed-modules:     Data.GraphQL
                        Data.GraphQL.AST
-                       Data.GraphQL.Encoder
+                       Data.GraphQL.AST.Core
+                       Data.GraphQL.AST.Transform
                        Data.GraphQL.Execute
+                       Data.GraphQL.Encoder
+                       Data.GraphQL.Error
                        Data.GraphQL.Schema
                        Data.GraphQL.Parser
-                       Data.GraphQL.Error
   build-depends:       aeson >= 0.7.0.3,
                        attoparsec >= 0.10.4.0,
                        base >= 4.7 && < 5,

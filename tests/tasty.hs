@@ -18,10 +18,10 @@ import qualified Test.StarWars.QueryTests as SW
 import Paths_graphql (getDataFileName)
 
 main :: IO ()
-main = defaultMain . testGroup "Tests" . (: [SW.test]) =<< ksTest
+main = defaultMain . testGroup "Tests" . (: [SW.test]) =<< kitchenTest
 
-ksTest :: IO TestTree
-ksTest = testCase "Kitchen Sink"
+kitchenTest :: IO TestTree
+kitchenTest = testCase "Kitchen Sink"
      <$> (assertEqual "Encode" <$> expected <*> actual)
   where
     expected = Text.readFile

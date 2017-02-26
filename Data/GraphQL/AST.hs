@@ -1,11 +1,13 @@
 -- | This module defines an abstract syntax tree for the @GraphQL@ language based on
 --   <https://facebook.github.io/graphql/ Facebook's GraphQL Specification>.
+--
+-- Target AST for Parser.
 
 module Data.GraphQL.AST where
 
 import Data.Int (Int32)
-import Data.String (IsString(fromString))
-import Data.Text (Text, pack)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Text (Text)
 
 -- * Name
 
@@ -13,116 +15,117 @@ type Name = Text
 
 -- * Document
 
-newtype Document = Document [Definition] deriving (Eq,Show)
+type Document = NonEmpty Definition
+
+-- * Operations
 
 data Definition = DefinitionOperation OperationDefinition
                 | DefinitionFragment  FragmentDefinition
                   deriving (Eq,Show)
 
-data OperationDefinition = Query    Node
-                         | Mutation Node
+data OperationDefinition = OperationSelectionSet SelectionSet
+                         | OperationDefinition   OperationType
+                                                 (Maybe Name)
+                                                 VariableDefinitions
+                                                 Directives
+                                                 SelectionSet
                            deriving (Eq,Show)
 
-data Node = Node Name [VariableDefinition] [Directive] SelectionSet
-            deriving (Eq,Show)
+data OperationType = Query | Mutation deriving (Eq,Show)
 
-data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
-                          deriving (Eq,Show)
+-- * SelectionSet
 
-newtype Variable = Variable Name deriving (Eq,Show)
+type SelectionSet = NonEmpty Selection
 
-instance IsString Variable where
-    fromString = Variable . pack
+type SelectionSetOpt = [Selection]
 
-type SelectionSet = [Selection]
-
-data Selection = SelectionField Field
+data Selection = SelectionField          Field
                | SelectionFragmentSpread FragmentSpread
                | SelectionInlineFragment InlineFragment
                  deriving (Eq,Show)
 
--- | A 'SelectionSet' is primarily composed of 'Field's. A 'Field' describes one
---   discrete piece of information available to request within a 'SelectionSet'.
---
---   Some 'Field's describe complex data or relationships to other data. In
---   order to further explore this data, a 'Field' may itself contain a
---   'SelectionSet', allowing for deeply nested requests. All @GraphQL@ operations
---   must specify their 'Selection's down to 'Field's which return scalar values to
---   ensure an unambiguously shaped response.
---
---   <https://facebook.github.io/graphql/#sec-Language.Query-Document.Fields Field Specification>
-data Field = Field Alias Name [Argument] [Directive] SelectionSet
+-- * Field
+
+data Field = Field (Maybe Alias) Name Arguments Directives SelectionSetOpt
              deriving (Eq,Show)
 
 type Alias = Name
 
--- | 'Field's are conceptually functions which return values, and occasionally accept
---   'Argument's which alter their behavior. These 'Argument's often map directly to
---   function arguments within a @GraphQL@ server’s implementation.
---
---   <https://facebook.github.io/graphql/#sec-Language.Query-Document.Arguments Argument Specification>
+-- * Arguments
+
+type Arguments = [Argument]
+
 data Argument = Argument Name Value deriving (Eq,Show)
 
 -- * Fragments
 
-data FragmentSpread = FragmentSpread Name [Directive]
+data FragmentSpread = FragmentSpread Name Directives deriving (Eq,Show)
+
+data InlineFragment = InlineFragment (Maybe TypeCondition) Directives SelectionSet
                       deriving (Eq,Show)
 
-data InlineFragment =
-    InlineFragment TypeCondition [Directive] SelectionSet
-    deriving (Eq,Show)
-
 data FragmentDefinition =
-    FragmentDefinition Name TypeCondition [Directive] SelectionSet
-    deriving (Eq,Show)
+  FragmentDefinition FragmentName TypeCondition Directives SelectionSet
+  deriving (Eq,Show)
 
-type TypeCondition = NamedType
+type FragmentName = Name
 
--- * Values
+type TypeCondition = Name
 
--- | 'Field' and 'Directive' 'Arguments' accept input values of various literal
---   primitives; input values can be scalars, enumeration values, lists, or input
---   objects.
---
---   If not defined as constant (for example, in 'DefaultValue'), input values
---   can be specified as a 'Variable'. List and inputs objects may also contain
---   'Variable's (unless defined to be constant).
---
---   <https://facebook.github.io/graphql/#sec-Input-Values Input Value Specification>
+-- Input Values
+
 data Value = ValueVariable Variable
-           | ValueInt Int32
-           -- GraphQL Float is double precison
-           | ValueFloat Double
-           | ValueBoolean Bool
-           | ValueString Text
-           | ValueEnum Name
+           | ValueInt IntValue
+           | ValueFloat FloatValue
+           | ValueString StringValue
+           | ValueBoolean BooleanValue
+           | ValueNull
+           | ValueEnum EnumValue
            | ValueList ListValue
            | ValueObject ObjectValue
              deriving (Eq,Show)
 
-newtype ListValue = ListValue [Value] deriving (Eq,Show)
+type IntValue = Int32
 
-newtype ObjectValue = ObjectValue [ObjectField] deriving (Eq,Show)
+-- GraphQL Float is double precison
+type FloatValue = Double
+
+type StringValue = Text
+
+type BooleanValue = Bool
+
+type EnumValue = Name
+
+type ListValue = [Value]
+
+type ObjectValue = [ObjectField]
 
 data ObjectField = ObjectField Name Value deriving (Eq,Show)
 
+-- * Variables
+
+type VariableDefinitions = [VariableDefinition]
+
+data VariableDefinition = VariableDefinition Variable Type (Maybe DefaultValue)
+                          deriving (Eq,Show)
+
+type Variable = Name
+
 type DefaultValue = Value
 
--- * Directives
+-- * Input Types
 
-data Directive = Directive Name [Argument] deriving (Eq,Show)
-
--- * Type Reference
-
-data Type = TypeNamed NamedType
-          | TypeList ListType
+data Type = TypeNamed   Name
+          | TypeList    Type
           | TypeNonNull NonNullType
             deriving (Eq,Show)
 
-newtype NamedType = NamedType Name deriving (Eq,Show)
-
-newtype ListType = ListType Type deriving (Eq,Show)
-
-data NonNullType = NonNullTypeNamed NamedType
-                 | NonNullTypeList  ListType
+data NonNullType = NonNullTypeNamed Name
+                 | NonNullTypeList  Type
                    deriving (Eq,Show)
+
+-- * Directives
+
+type Directives = [Directive]
+
+data Directive = Directive Name [Argument] deriving (Eq,Show)
