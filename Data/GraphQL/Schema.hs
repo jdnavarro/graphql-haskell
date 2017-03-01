@@ -6,11 +6,15 @@ module Data.GraphQL.Schema
   , Resolver
   , Subs
   , object
+  , object'
   , objectA
+  , objectA'
   , scalar
   , scalarA
   , array
+  , array'
   , arrayA
+  , arrayA'
   , enum
   , enumA
   , resolve
@@ -62,6 +66,21 @@ objectA
   => Name -> (Arguments -> Resolvers f) -> Resolver f
 objectA name f fld@(Field _ _ args flds) = withField name (resolve (f args) flds) fld
 
+-- | Create a named 'Resolver' from a list of 'Resolver's.
+object' :: (Alternative f, Monad f) => Text -> f [Resolver f] -> Resolver f
+object' name resolvs = objectA' name $ \case
+     [] -> resolvs
+     _  -> empty
+
+-- | Like 'object'' but also taking 'Argument's.
+objectA'
+  :: (Alternative f, Monad f)
+  => Text -> ([Argument] -> f [Resolver f]) -> Resolver f
+objectA' name f fld@(Field _ _ args _ sels) = do
+    resolvs <- f args
+    withField name (resolvers resolvs $ fields sels) fld
+
+
 -- | A scalar represents a primitive value, like a string or an integer.
 scalar :: (Alternative f, Aeson.ToJSON a) => Name -> a -> Resolver f
 scalar name s = scalarA name $ \case
@@ -86,6 +105,20 @@ arrayA
   => Text -> (Arguments -> [Resolvers f]) -> Resolver f
 arrayA name f fld@(Field _ _ args sels) =
      withField name (traverse (`resolve` sels) $ f args) fld
+
+-- | Like 'object'' but taking lists of 'Resolver's instead of a single list.
+array' :: (Alternative f, Monad f) => Text -> f [[Resolver f]] -> Resolver f
+array' name resolvs = arrayA' name $ \case
+    [] -> resolvs
+    _  -> empty
+
+-- | Like 'array'' but also taking 'Argument's.
+arrayA'
+  :: (Alternative f, Monad f)
+  => Text -> ([Argument] -> f [[Resolver f]]) -> Resolver f
+arrayA' name f fld@(Field _ _ args _ sels) = do
+     resolvs <- f args
+     withField name (joinErrs $ traverse (flip resolvers $ fields sels) $ resolvs) fld
 
 -- | Represents one of a finite set of possible values.
 --   Used in place of a 'scalar' when the possible responses are easily enumerable.
