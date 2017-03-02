@@ -76,9 +76,9 @@ object' name resolvs = objectA' name $ \case
 objectA'
   :: (Alternative f, Monad f)
   => Text -> ([Argument] -> f [Resolver f]) -> Resolver f
-objectA' name f fld@(Field _ _ args _ sels) = do
+objectA' name f fld@(Field _ _ args flds) = do
     resolvs <- f args
-    withField name (resolvers resolvs $ fields sels) fld
+    withField name (resolve resolvs flds) fld
 
 
 -- | A scalar represents a primitive value, like a string or an integer.
@@ -116,9 +116,9 @@ array' name resolvs = arrayA' name $ \case
 arrayA'
   :: (Alternative f, Monad f)
   => Text -> ([Argument] -> f [[Resolver f]]) -> Resolver f
-arrayA' name f fld@(Field _ _ args _ sels) = do
+arrayA' name f fld@(Field _ _ args sels) = do
      resolvs <- f args
-     withField name (joinErrs $ traverse (flip resolvers $ fields sels) $ resolvs) fld
+     withField name (traverse (`resolve` sels) resolvs) fld
 
 -- | Represents one of a finite set of possible values.
 --   Used in place of a 'scalar' when the possible responses are easily enumerable.
