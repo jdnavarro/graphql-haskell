@@ -250,7 +250,7 @@ test = testGroup "Star Wars Query Tests"
             }
           |]
     $ object ["data" .= object [
-        "hero" .= ["__typename" .= ("Droid" :: Text), r2d2Name]
+        "hero" .= object ["__typename" .= ("Droid" :: Text), r2d2Name]
       ]]
     , testCase "Luke is a human" . testQuery
         [r| query CheckTypeOfLuke {
@@ -261,7 +261,7 @@ test = testGroup "Star Wars Query Tests"
             }
           |]
     $ object ["data" .= object [
-        "hero" .= ["__typename" .= ("Human" :: Text), lukeName]
+        "hero" .= object ["__typename" .= ("Human" :: Text), lukeName]
       ]]
     ]
     , testGroup "Errors in resolvers"
@@ -293,7 +293,7 @@ test = testGroup "Star Wars Query Tests"
             |]
       $ object ["data" .= object [
           "hero" .= [r2d2Name, "friends" .= [
-              object [lukeName, secretBackstory]
+            object [lukeName, secretBackstory]
           , object [hanName, secretBackstory]
           , object [leiaName, secretBackstory]
           ]]

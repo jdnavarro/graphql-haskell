@@ -19,7 +19,10 @@ schema = hero :| [human, droid]
 hero :: Alternative f => Resolver f
 hero = Schema.objectA "hero" $ \case
   [] -> character artoo
-  [Argument "episode" (ValueInt n)] -> character . getHero $ fromIntegral n
+  [Argument "episode" (ValueInt n)]   -> character . getHero $ fromIntegral n
+  [Argument "episode" (ValueEnum "NEWHOPE")] -> character $ getHero 4
+  [Argument "episode" (ValueEnum "EMPIRE" )] -> character $ getHero 5
+  [Argument "episode" (ValueEnum "JEDI"   )] -> character $ getHero 6
   _ -> empty
 
 human :: Alternative f => Resolver f
@@ -40,4 +43,5 @@ character char =
   , Schema.enum   "appearsIn"       . traverse getEpisode $ appearsIn char
   , Schema.scalar "secretBackstory" $ secretBackstory char
   , Schema.scalar "homePlanet"      $ either mempty homePlanet char
+  , Schema.scalar "__typename"      $ typeName char
   ]

@@ -1,11 +1,7 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.StarWars.Data where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>), pure)
 import Data.Monoid (mempty)
-#endif
 import Control.Applicative (Alternative, (<|>), empty, liftA2)
 import Data.Maybe (catMaybes)
 
@@ -38,8 +34,6 @@ data Droid = Droid
 
 type Character = Either Droid Human
 
--- I still don't think this is cumbersome enough to bring lens
-
 id_ :: Character -> ID
 id_ (Left  x) = _id_ . _droidChar $ x
 id_ (Right x) = _id_ . _humanChar $ x
@@ -58,6 +52,9 @@ appearsIn (Right x) = _appearsIn . _humanChar $ x
 
 secretBackstory :: Character -> Text
 secretBackstory = error "secretBackstory is secret."
+
+typeName :: Character -> Text
+typeName = either (const "Droid") (const "Human")
 
 luke :: Character
 luke = Right luke'
