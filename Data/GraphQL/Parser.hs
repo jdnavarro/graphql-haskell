@@ -149,7 +149,7 @@ value = ValueVariable <$> variable
       either (pure . ValueFloat)
              (maybe (fail "Integer value is out of range.")
                     (pure . ValueInt)
-                    . toBoundedInteger . (`scientific` 1))
+                    . toBoundedInteger . (`scientific` 0))
              . floatingOrInteger
 
     -- TODO: Escape characters. Look at `jsstring_` in aeson package.
