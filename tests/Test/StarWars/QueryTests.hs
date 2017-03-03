@@ -140,24 +140,19 @@ test = testGroup "Star Wars Query Tests"
       $ object [ "data" .= object [
           "human" .= object [hanName]
         ]]
-    -- TODO: Enable after Error handling restoration
-    -- , testCase "Invalid ID" . testQueryParams
-    --     (\v -> if v == "id"
-    --               then Just "Not a valid ID"
-    --               else Nothing)
-    --     [r| query humanQuery($id: String!) {
-    --           human(id: $id) {
-    --             name
-    --           }
-    --         }
-    --     |] $ object ["data" .= object ["human" .= object ["name" .= Aeson.Null]],
-    --                  "errors" .= Aeson.toJSON [object ["message" .= ("field name not resolved." :: Text)]]]
-        -- TODO: This test is directly ported from `graphql-js`, however do we want
-        -- to mimic the same behavior? Is this part of the spec? Once proper
-        -- exceptions are implemented this test might no longer be meaningful.
-        -- If the same behavior needs to be replicated, should it be implemented
-        -- when defining the `Schema` or when executing?
-        -- $ object [ "data" .= object ["human" .= Aeson.Null] ]
+    , testCase "Invalid ID" . testQueryParams
+        (\v -> if v == "id"
+               then Just "Not a valid ID"
+               else Nothing)
+        [r| query humanQuery($id: String!) {
+              human(id: $id) {
+                name
+              }
+            }
+        -- The GraphQL spec specifies that an error should be reported when the
+        -- type of the argument is Non-Nullable. However the equivalent test in
+        -- `graphql-js` doesn't check for any errors.
+        |] $ object ["data" .= object ["human" .= Aeson.Null]]
     , testCase "Luke aliased" . testQuery
         [r| query FetchLukeAliased {
               luke: human(id: "1000") {

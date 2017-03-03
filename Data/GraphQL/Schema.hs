@@ -24,7 +24,7 @@ module Data.GraphQL.Schema
   , Value(..)
   ) where
 
-import Control.Applicative (Alternative(empty))
+import Control.Applicative (Alternative(empty), (<|>))
 import Data.Foldable (fold)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
@@ -65,6 +65,7 @@ objectA
   :: Alternative f
   => Name -> (Arguments -> Resolvers f) -> Resolver f
 objectA name f fld@(Field _ _ args flds) = withField name (resolve (f args) flds) fld
+
 
 -- | Create a named 'Resolver' from a list of 'Resolver's.
 object' :: (Alternative f, Monad f) => Text -> f [Resolver f] -> Resolver f
@@ -136,9 +137,11 @@ enumA _ _ _ = empty
 withField
   :: (Alternative f, Aeson.ToJSON a)
   => Name -> f a -> Field -> f (HashMap Text Aeson.Value)
-withField name f (Field alias name' _ _) =
+withField name v (Field alias name' _ _) =
   if name == name'
-    then fmap (HashMap.singleton aliasOrName . Aeson.toJSON) f
+    then fmap (HashMap.singleton aliasOrName . Aeson.toJSON) v
+         -- TODO: Report error when Non-Nullable type for field argument.
+     <|> pure (HashMap.singleton aliasOrName Aeson.Null)
     else empty
   where
     aliasOrName = fromMaybe name alias
