@@ -29,6 +29,7 @@ dependencies.
     import qualified Data.GraphQL.Schema as Schema
 
     import Control.Applicative
+    import Data.List.NonEmpty (NonEmpty((:|)))
     import Data.Text hiding (empty)
     import Data.Aeson
     import Data.ByteString.Lazy.Char8 (putStrLn)
@@ -48,7 +49,7 @@ First we build a GraphQL schema.
 .. code:: haskell
 
     schema1 :: Alternative f => Schema f
-    schema1 = Schema [hello]
+    schema1 = hello :| []
 
     hello :: Alternative f => Resolver f
     hello = Schema.scalar "hello" ("it's me" :: Text)
@@ -82,7 +83,7 @@ For this example, we're going to be using time.
 .. code:: haskell
 
     schema2 :: Schema IO
-    schema2 = Schema [time]
+    schema2 = time :| []
 
     time :: Resolver IO
     time = Schema.scalarA "time" $ \case
@@ -150,7 +151,7 @@ both.
 .. code:: haskell
 
     schema3 :: Schema IO
-    schema3 = Schema [hello, time]
+    schema3 = hello :| [time]
 
     query3 :: Text
     query3 = "query timeAndHello { time hello }"
