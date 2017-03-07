@@ -74,6 +74,7 @@ code > span.in { color: #008000; } /* Information */
 <span class="kw">import qualified</span> <span class="dt">Data.GraphQL.Schema</span> <span class="kw">as</span> <span class="dt">Schema</span>
 
 <span class="kw">import </span><span class="dt">Control.Applicative</span>
+<span class="kw">import </span><span class="dt">Data.List.NonEmpty</span> (<span class="dt">NonEmpty</span>((:|)))
 <span class="kw">import </span><span class="dt">Data.Text</span> <span class="kw">hiding</span> (empty)
 <span class="kw">import </span><span class="dt">Data.Aeson</span>
 <span class="kw">import </span><span class="dt">Data.ByteString.Lazy.Char8</span> (putStrLn)
@@ -86,7 +87,7 @@ code > span.in { color: #008000; } /* Information */
 <p>Now, as our first example, we are going to look at the example from <a href="https://github.com/graphql/graphql-js">graphql.js</a>.</p>
 <p>First we build a GraphQL schema.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema1 ::</span> <span class="dt">Alternative</span> f <span class="ot">=&gt;</span> <span class="dt">Schema</span> f
-schema1 <span class="fu">=</span> <span class="dt">Schema</span> [hello]
+schema1 <span class="fu">=</span> hello <span class="fu">:|</span> []
 
 <span class="ot">hello ::</span> <span class="dt">Alternative</span> f <span class="ot">=&gt;</span> <span class="dt">Resolver</span> f
 hello <span class="fu">=</span> Schema.scalar <span class="st">&quot;hello&quot;</span> (<span class="st">&quot;it&#39;s me&quot;</span><span class="ot"> ::</span> <span class="dt">Text</span>)</code></pre></div>
@@ -104,7 +105,7 @@ main1 <span class="fu">=</span> putStrLn <span class="fu">=&lt;&lt;</span> encod
 <h3>Monadic actions</h3>
 <p>For this example, we’re going to be using time.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema2 ::</span> <span class="dt">Schema</span> <span class="dt">IO</span>
-schema2 <span class="fu">=</span> <span class="dt">Schema</span> [time]
+schema2 <span class="fu">=</span> time <span class="fu">:|</span> []
 
 <span class="ot">time ::</span> <span class="dt">Resolver</span> <span class="dt">IO</span>
 time <span class="fu">=</span> Schema.scalarA <span class="st">&quot;time&quot;</span> <span class="fu">$</span> \<span class="kw">case</span>
@@ -144,7 +145,7 @@ This will fail
 <h3>Combining resolvers</h3>
 <p>Now that we have two resolvers, we can define a schema which uses them both.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">schema3 ::</span> <span class="dt">Schema</span> <span class="dt">IO</span>
-schema3 <span class="fu">=</span> <span class="dt">Schema</span> [hello, time]
+schema3 <span class="fu">=</span> hello <span class="fu">:|</span> [time]
 
 <span class="ot">query3 ::</span> <span class="dt">Text</span>
 query3 <span class="fu">=</span> <span class="st">&quot;query timeAndHello { time hello }&quot;</span>
