@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Test.StarWars.QueryTests (test) where
 
+import Control.Exception.Safe.Checked (catch)
 import qualified Data.Aeson as Aeson (Value(Null), toJSON)
 import Data.Aeson (object, (.=))
 import Data.Text (Text)
@@ -10,10 +13,12 @@ import Text.RawString.QQ (r)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 
-import Data.GraphQL
+import Data.GraphQL (graphql, graphqlSubs)
+import Data.GraphQL.Error (NotFound(..))
 import Data.GraphQL.Schema (Subs)
 
 import Test.StarWars.Schema
+
 
 -- * Test
 -- See https://github.com/graphql/graphql-js/blob/master/src/__tests__/starWarsQueryTests.js
@@ -327,13 +332,20 @@ test = testGroup "Star Wars Query Tests"
     secretPath n = ("hero", "friends", n, "secretBackstory") :: (Text, Text, Int, Text)
 
 testQuery :: Text -> Aeson.Value -> Assertion
-testQuery q expected = graphql schema q @?= Just expected
+testQuery q expected = actual >>= (@?= Right expected)
+  where
+    actual :: IO (Either NotFound Aeson.Value)
+    actual = (Right <$> graphql schema q) `catch` (pure . Left)
+
 
 -- testFail :: Text -> Assertion
 -- testFail q = graphql schema q @?= Nothing
 
 testQueryParams :: Subs -> Text -> Aeson.Value -> Assertion
-testQueryParams f q expected = graphqlSubs schema f q @?= Just expected
+testQueryParams f q expected = actual >>= (@?= Right expected)
+  where
+    actual :: IO (Either NotFound Aeson.Value)
+    actual = (Right <$> graphqlSubs schema f q) `catch` (pure . Left)
 
 -- testFailParams :: Subs -> Text -> Assertion
 -- testFailParams f q = graphqlSubs schema f q @?= Nothing

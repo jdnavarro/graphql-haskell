@@ -2,7 +2,7 @@
 module Test.StarWars.Data where
 
 import Data.Monoid (mempty)
-import Control.Applicative (Alternative, (<|>), empty, liftA2)
+import Control.Applicative ((<|>), liftA2)
 import Data.Maybe (catMaybes)
 
 import Data.Text (Text)
@@ -148,30 +148,30 @@ getHero _ = artoo
 getHeroIO :: Int -> IO Character
 getHeroIO = pure . getHero
 
-getHuman :: Alternative f => ID -> f Character
+getHuman :: ID -> Maybe Character
 getHuman = fmap Right . getHuman'
 
-getHuman' :: Alternative f => ID -> f Human
-getHuman' "1000" = pure luke'
-getHuman' "1001" = pure vader
-getHuman' "1002" = pure han
-getHuman' "1003" = pure leia
-getHuman' "1004" = pure tarkin
-getHuman' _      = empty
+getHuman' :: ID -> Maybe Human
+getHuman' "1000" = Just luke'
+getHuman' "1001" = Just vader
+getHuman' "1002" = Just han
+getHuman' "1003" = Just leia
+getHuman' "1004" = Just tarkin
+getHuman' _      = Nothing
 
-getDroid :: Alternative f => ID -> f Character
+getDroid :: ID -> Maybe Character
 getDroid = fmap Left . getDroid'
 
-getDroid' :: Alternative f => ID -> f Droid
-getDroid' "2000" = pure threepio
-getDroid' "2001" = pure artoo'
-getDroid' _      = empty
+getDroid' :: ID -> Maybe Droid
+getDroid' "2000" = Just threepio
+getDroid' "2001" = Just artoo'
+getDroid' _      = Nothing
 
 getFriends :: Character -> [Character]
 getFriends char = catMaybes $ liftA2 (<|>) getDroid getHuman <$> friends char
 
-getEpisode :: Alternative f => Int -> f Text
-getEpisode 4 = pure "NEWHOPE"
-getEpisode 5 = pure "EMPIRE"
-getEpisode 6 = pure "JEDI"
-getEpisode _ = empty
+getEpisode :: Int -> Maybe Text
+getEpisode 4 = Just "NEWHOPE"
+getEpisode 5 = Just "EMPIRE"
+getEpisode 6 = Just "JEDI"
+getEpisode _ = Nothing

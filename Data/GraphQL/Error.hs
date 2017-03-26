@@ -2,17 +2,24 @@
 module Data.GraphQL.Error (
   parseError,
   CollectErrsT,
+  NotFound(..),
   addErr,
   addErrMsg,
   runCollectErrs,
   joinErrs,
-  errWrap
+  errWrap,
   ) where
+
+import Control.Arrow ((&&&))
+
+import Control.Exception.Safe.Checked (Exception)
 
 import qualified Data.Aeson as Aeson
 import Data.Text (Text, pack)
 
-import Control.Arrow ((&&&))
+data NotFound = NotFound deriving (Show, Eq)
+
+instance Exception NotFound
 
 -- | Wraps a parse error into a list of errors.
 parseError :: Applicative f => String -> f Aeson.Value

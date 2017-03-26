@@ -1,18 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- | This module provides the function to execute a @GraphQL@ request --
 --   according to a 'Schema'.
 module Data.GraphQL.Execute (execute) where
 
-import Control.Applicative (Alternative, empty)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
+import Control.Exception.Safe.Checked (MonadCatch, Throws, throw)
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HashMap
 
 import qualified Data.GraphQL.AST as AST
 import qualified Data.GraphQL.AST.Core as AST.Core
 import qualified Data.GraphQL.AST.Transform as Transform
+import Data.GraphQL.Error
 import Data.GraphQL.Schema (Schema)
 import qualified Data.GraphQL.Schema as Schema
 
@@ -23,15 +25,15 @@ import qualified Data.GraphQL.Schema as Schema
 --   Returns the result of the query against the 'Schema' wrapped in a /data/ field, or
 --   errors wrapped in an /errors/ field.
 execute
-  :: (Alternative f, Monad f)
-  => Schema f -> Schema.Subs -> AST.Document -> f Aeson.Value
-execute schema subs doc = document schema =<< maybe empty pure (Transform.document subs doc)
+  :: (MonadCatch m, Throws NotFound)
+  => Schema m -> Schema.Subs -> AST.Document -> m Aeson.Value
+execute schema subs doc = document schema =<< maybe (throw NotFound) pure (Transform.document subs doc)
 
-document :: Alternative f => Schema f -> AST.Core.Document -> f Aeson.Value
+document :: (MonadCatch m, Throws NotFound) => Schema m -> AST.Core.Document -> m Aeson.Value
 document schema (op :| []) = operation schema op
 document _ _ = error "Multiple operations not supported yet"
 
-operation :: Alternative f => Schema f -> AST.Core.Operation -> f Aeson.Value
+operation :: (MonadCatch m, Throws NotFound) => Schema m -> AST.Core.Operation -> m Aeson.Value
 operation schema (AST.Core.Query flds) =
   Aeson.Object . HashMap.singleton "data"
              <$> Schema.resolve (NE.toList schema) (NE.toList flds)
