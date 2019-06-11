@@ -1,0 +1,53 @@
+name:                graphql
+version:             0.3
+synopsis:            Haskell GraphQL implementation
+description:
+  This package provides a rudimentary parser for the
+  <https://facebook.github.io/graphql/ GraphQL> language.
+homepage:            https://github.com/jdnavarro/graphql-haskell
+maintainer:          j@dannynavarro.net
+copyright:           Copyright (C) 2015-2019 J. Daniel Navarro
+category:            Web
+github:              jdnavarro/graphql-haskell
+author:
+- Danny Navarro
+- Matthías Páll Gissurarson
+- Sólrún Halla Einarsdóttir
+
+extra-source-files:
+- CHANGELOG.md
+- README.md
+- LICENSE
+- TODO
+- docs/tutorial/tutorial.lhs
+
+data-files:
+- tests/data/*.graphql
+- tests/data/*.min.graphql
+
+dependencies:
+- aeson
+- attoparsec
+- base >= 4.7 && < 5
+- semigroups
+- text
+- unordered-containers
+
+library:
+  source-dirs: .
+  dependencies:
+  - scientific
+
+tests:
+  tasty:
+    main: tasty.hs
+    source-dirs: tests
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - graphql
+    - raw-strings-qq
+    - tasty
+    - tasty-hunit

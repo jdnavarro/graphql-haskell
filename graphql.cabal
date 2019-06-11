@@ -1,69 +1,85 @@
-name:                graphql
-version:             0.3
-synopsis:            Haskell GraphQL implementation
-description:
-  This package provides a rudimentary parser for the
-  <https://facebook.github.io/graphql/ GraphQL> language.
-homepage:            https://github.com/jdnavarro/graphql-haskell
-bug-reports:         https://github.com/jdnavarro/graphql-haskell/issues
-license:             BSD3
-license-file:        LICENSE
-author:              Danny Navarro, Matthías Páll Gissurarson, Sólrún Halla Einarsdóttir
-maintainer:          j@dannynavarro.net
-copyright:           Copyright (C) 2015-2016 J. Daniel Navarro
-category:            Web
-build-type:          Simple
-cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC==8.0.1
-extra-source-files:  README.md CHANGELOG.md stack.yaml
-                     docs/tutorial/tutorial.lhs
-data-files:          tests/data/*.graphql
-                     tests/data/*.min.graphql
+cabal-version: 1.12
 
-library
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-  exposed-modules:     Data.GraphQL
-                       Data.GraphQL.AST
-                       Data.GraphQL.AST.Core
-                       Data.GraphQL.AST.Transform
-                       Data.GraphQL.Execute
-                       Data.GraphQL.Encoder
-                       Data.GraphQL.Error
-                       Data.GraphQL.Schema
-                       Data.GraphQL.Parser
-  build-depends:       aeson >= 0.7.0.3,
-                       attoparsec >= 0.10.4.0,
-                       base >= 4.7 && < 5,
-                       text >= 0.11.3.1,
-                       unordered-containers >= 0.2.5.0,
-                       scientific >=0.3.1 && <0.4
-  if impl(ghc >= 8.0)
-    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
-  else
-    -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API for pre-GHC8
-    build-depends: fail == 4.9.*, semigroups == 0.18.*
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 5e8ecb58b182478576a725b6da5466c8e71db7dda7735397006e2b14406ee3ad
 
-test-suite tasty
-  default-language:    Haskell2010
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      tests
-  main-is:             tasty.hs
-  ghc-options:         -Wall
-  other-modules:       Paths_graphql
-                       Test.StarWars.Data
-                       Test.StarWars.Schema
-                       Test.StarWars.QueryTests
-  build-depends:       aeson >= 0.7.0.3,
-                       attoparsec >= 0.10.4.0,
-                       base >= 4.6 && <5,
-                       graphql,
-                       raw-strings-qq >= 1.1,
-                       tasty >= 0.10,
-                       tasty-hunit >= 0.9,
-                       text >= 0.11.3.1,
-                       unordered-containers >= 0.2.5.0
+name:           graphql
+version:        0.3
+synopsis:       Haskell GraphQL implementation
+description:    This package provides a rudimentary parser for the <https://facebook.github.io/graphql/ GraphQL> language.
+category:       Web
+homepage:       https://github.com/jdnavarro/graphql-haskell
+bug-reports:    https://github.com/jdnavarro/graphql-haskell/issues
+author:         Danny Navarro,
+                Matthías Páll Gissurarson,
+                Sólrún Halla Einarsdóttir
+maintainer:     j@dannynavarro.net
+copyright:      Copyright (C) 2015-2019 J. Daniel Navarro
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+    README.md
+    LICENSE
+    TODO
+    docs/tutorial/tutorial.lhs
+data-files:
+    tests/data/kitchen-sink.graphql
+    tests/data/kitchen-sink.min.graphql
 
 source-repository head
-  type:     git
-  location: git://github.com/jdnavarro/graphql-haskell.git
+  type: git
+  location: https://github.com/jdnavarro/graphql-haskell
+
+library
+  exposed-modules:
+      Data.GraphQL
+      Data.GraphQL.AST
+      Data.GraphQL.AST.Core
+      Data.GraphQL.AST.Transform
+      Data.GraphQL.Encoder
+      Data.GraphQL.Error
+      Data.GraphQL.Execute
+      Data.GraphQL.Parser
+      Data.GraphQL.Schema
+  other-modules:
+      Paths_graphql
+  hs-source-dirs:
+      ./.
+  build-depends:
+      aeson
+    , attoparsec
+    , base >=4.7 && <5
+    , scientific
+    , semigroups
+    , text
+    , unordered-containers
+  default-language: Haskell2010
+
+test-suite tasty
+  type: exitcode-stdio-1.0
+  main-is: tasty.hs
+  other-modules:
+      Test.StarWars.Data
+      Test.StarWars.QueryTests
+      Test.StarWars.Schema
+      Paths_graphql
+  hs-source-dirs:
+      tests
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , attoparsec
+    , base >=4.7 && <5
+    , graphql
+    , raw-strings-qq
+    , semigroups
+    , tasty
+    , tasty-hunit
+    , text
+    , unordered-containers
+  default-language: Haskell2010
